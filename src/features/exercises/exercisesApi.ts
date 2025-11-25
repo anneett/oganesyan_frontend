@@ -24,18 +24,18 @@ export const exercisesApi = createApi({
         baseUrl: 'http://localhost:5177/api',
     }),
     endpoints: (builder) => ({
-        getExercises: builder.query<Exercise[], void>({
-            query: () => '/Exercises/all',
+        createExercise: builder.mutation<Exercise, Partial<Exercise>>({
+            query: (newExercise) => ({
+                url: '/Exercises/add',
+                method: 'POST',
+                body: newExercise,
+            }),
         }),
         getExerciseById: builder.query<Exercise, number>({
             query: (id) => `/Exercises/${id}`,
         }),
-        createExercise: builder.mutation<Exercise, Partial<Exercise>>({
-            query: (newExercise) => ({
-                url: 'Exercises/add',
-                method: 'POST',
-                body: newExercise,
-            }),
+        getExercises: builder.query<Exercise[], void>({
+            query: () => '/Exercises/all',
         }),
     }),
 });

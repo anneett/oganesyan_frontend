@@ -10,7 +10,7 @@ export function Exercises() {
         <ul>
             {exercises?.map(exercise => (
                 <li key={exercise.id}>
-                    {exercise.title} ({exercise.difficulty})
+                    {exercise.title}, {exercise.difficulty}
                 </li>
             ))}
         </ul>
