@@ -4,8 +4,6 @@ export interface User {
     id: number;
     username: string;
     login: string;
-    passwordHash: string;
-    salt: string;
     isAdmin: boolean;
 }
 
@@ -14,7 +12,7 @@ export const usersApi = createApi({
     baseQuery: fetchBaseQuery({
         baseUrl: "http://localhost:5177/api",
     }),
-    endpoints: (builder) => createApi({
+    endpoints: (builder) => ({
         createUser: builder.mutation<User, Partial<User>>({
             query: (newUser) => ({
                 url: '/Users/add',
@@ -31,23 +29,23 @@ export const usersApi = createApi({
         getUserProfile: builder.query<User, void>({
             query: () => '/Users/profile',
         }),
-        updateUser: builder.query<User, void>({
+        updateUser: builder.mutation<User, void>({
             query: () => '/Users/update',
             // Создание или обновление?
         }),
-        updateUserById: builder.query<User, number>({
+        updateUserById: builder.mutation<User, number>({
             query: (id) => `/Users/update/${id}`,
             // Создание или обновление?
         }),
-        changeUser: builder.query<User, number>({
+        changeUser: builder.mutation<User, number>({
             query: (id) => `/Users/change/${id}`,
             // Обновление?
         }),
-        deleteUser: builder.query<User>({
+        deleteUser: builder.mutation<User>({
             query: () => 'Users/selfdelete',
             // Как удаление реализовать?
-        })
-        deleteUserById: builder.query<User, number>({
+        }),
+        deleteUserById: builder.mutation<User, number>({
             query: (id) => `Users/delete/${id}`,
             // Как удаление реализовать?
         }),

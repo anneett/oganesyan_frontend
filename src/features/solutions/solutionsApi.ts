@@ -9,7 +9,7 @@ export interface Solution {
     userAnswer: string;
     isCorrect: boolean;
     submittedAd: Date;
-    result: Solution;
+    result: string;
 }
 
 export const solutionsApi = createApi({

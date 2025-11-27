@@ -1,15 +1,19 @@
-import {useGetExercisesQuery } from "./exercisesApi.ts";
+import { useGetExercisesQuery } from "./exercisesApi.ts";
 
 export function ExercisesPage() {
-    const { data: exercises, isLoading } = useGetExercisesQuery();
+    const { data: exercises, isLoading, error } = useGetExercisesQuery();
 
     if (isLoading) return <div>Loading...</div>;
+    if (error) return <div>Ошибка загрузки</div>;
 
     return (
-        <ul>
-            {exercises?.map((exercise) => (
-                <li key={exercise.id}>{exercise.title} ({exercise.difficulty})</li>
-            ))}
-        </ul>
+        <div>
+            <h1>Список упражнений</h1>
+            <ul>
+                {exercises?.map((exercise) => (
+                    <li key={exercise.id}>{exercise.title} ({exercise.difficulty})</li>
+                ))}
+            </ul>
+        </div>
     );
 }

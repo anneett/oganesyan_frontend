@@ -1,3 +1,6 @@
+@import "tailwindcss";
+@import "tailwindcss/preflight";
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -65,4 +68,8 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+@utility text-gradient {
+    @apply bg-linear-to-r from-[#D6C7FF] to-[#AB8bFF] bg-clip-text text-transparent;
 }
