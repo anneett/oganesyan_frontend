@@ -12,6 +12,7 @@ export interface AuthResponse {
     };
     refreshToken: string;
 }
+
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({

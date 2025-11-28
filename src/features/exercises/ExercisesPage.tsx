@@ -1,4 +1,5 @@
 import { useGetExercisesQuery } from "./exercisesApi.ts";
+import { Link } from "react-router-dom";
 
 export function ExercisesPage() {
     const { data: exercises, isLoading, error } = useGetExercisesQuery();
@@ -14,6 +15,9 @@ export function ExercisesPage() {
                     <li key={exercise.id}>{exercise.title} ({exercise.difficulty})</li>
                 ))}
             </ul>
+            <p>
+                <Link to="/profile">Профиль</Link>
+            </p>
         </div>
     );
 }

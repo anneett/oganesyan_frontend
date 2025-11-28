@@ -7,13 +7,26 @@ export interface User {
     isAdmin: boolean;
 }
 
+export interface CreateUserRequest {
+    userName: string;
+    login: string;
+    passwordHash: string;
+}
+
 export const usersApi = createApi({
     reducerPath: "users",
     baseQuery: fetchBaseQuery({
         baseUrl: "http://localhost:5177/api",
+        prepareHeaders: (headers, { getState }) => {
+            const token = (getState() as any).auth.token;
+            if (token) {
+                headers.set("Authorization", `Bearer ${token}`);
+            }
+            return headers;
+        },
     }),
     endpoints: (builder) => ({
-        createUser: builder.mutation<User, Partial<User>>({
+        createUser: builder.mutation<User, CreateUserRequest>({
             query: (newUser) => ({
                 url: '/Users/add',
                 method: 'POST',
@@ -54,4 +67,6 @@ export const usersApi = createApi({
 
 export const {
     useGetUsersQuery,
+    useGetUserProfileQuery,
+    useCreateUserMutation,
 } = usersApi;
