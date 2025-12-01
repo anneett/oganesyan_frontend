@@ -31,10 +31,6 @@ export const SignUp = () => {
         }
     };
 
-    const  enterButtonClick = () => {
-        navigate('/login');
-    };
-
     return (
         <div className="auth-container">
             <div className="auth-card">
@@ -60,7 +56,7 @@ export const SignUp = () => {
                         onChange={(e) => setPassword(e.target.value)}
                     />
 
-                    <button type="submit" disabled={isLoading} onClick={enterButtonClick}> {/* нужно ли ентер? он сразу переходит*/}
+                    <button type="submit" disabled={isLoading}>
                         {isLoading ? "Регистрация..." : "Зарегистрироваться"}
                     </button>
                 </form>

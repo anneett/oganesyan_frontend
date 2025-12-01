@@ -22,6 +22,13 @@ export const exercisesApi = createApi({
     reducerPath: "exercisesApi",
     baseQuery: fetchBaseQuery({
         baseUrl: 'http://localhost:5177/api',
+        prepareHeaders: (headers) => {
+            const token = localStorage.getItem("access_token");
+            if (token) {
+                headers.set("Authorization", `Bearer ${token}`);
+            }
+            return headers;
+        }
     }),
     endpoints: (builder) => ({
         createExercise: builder.mutation<Exercise, Partial<Exercise>>({

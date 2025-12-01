@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type {Exercise} from "../exercises/exercisesApi.ts";
 
 export interface User {
     id: number;
@@ -13,17 +14,27 @@ export interface CreateUserRequest {
     passwordHash: string;
 }
 
+export interface UserSolution {
+    solutionId: number;
+    exerciseId: number;
+    exerciseTitle: string;
+    exerciseDifficulty: 0 | 1 | 2;
+    correctAnswer: string;
+    userAnswer: string;
+    isCorrect: boolean;
+    submittedAt: string;
+    result: string | null;
+}
+
 export const usersApi = createApi({
-    reducerPath: "users",
+    reducerPath: "usersApi",
     baseQuery: fetchBaseQuery({
         baseUrl: "http://localhost:5177/api",
-        prepareHeaders: (headers, { getState }) => {
-            const token = (getState() as any).auth.token;
-            if (token) {
-                headers.set("Authorization", `Bearer ${token}`);
-            }
+        prepareHeaders: (headers) => {
+            const token = localStorage.getItem("access_token");
+            if (token) headers.set("Authorization", `Bearer ${token}`);
             return headers;
-        },
+        }
     }),
     endpoints: (builder) => ({
         createUser: builder.mutation<User, CreateUserRequest>({
@@ -41,6 +52,9 @@ export const usersApi = createApi({
         }),
         getUserProfile: builder.query<User, void>({
             query: () => '/Users/profile',
+        }),
+        getUserStats: builder.query<UserSolution[], void>({
+            query: () => '/Users/stat',
         }),
         updateUser: builder.mutation<User, void>({
             query: () => '/Users/update',
@@ -69,4 +83,5 @@ export const {
     useGetUsersQuery,
     useGetUserProfileQuery,
     useCreateUserMutation,
+    useGetUserStatsQuery,
 } = usersApi;

@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type {Exercise} from "../exercises/exercisesApi.ts";
+import type {CreateUserRequest, User} from "../users/usersApi.ts";
 
 export interface Solution {
     id: number;
@@ -12,13 +13,25 @@ export interface Solution {
     result: string;
 }
 
+export interface CreateSolutionRequest {
+    exerciseId: number;
+    userAnswer: string;
+}
+
 export const solutionsApi = createApi({
     reducerPath: 'solutionsApi',
     baseQuery: fetchBaseQuery({
         baseUrl: 'http://localhost:5177/api',
+        prepareHeaders: (headers) => {
+            const token = localStorage.getItem("access_token");
+            if (token) {
+                headers.set("Authorization", `Bearer ${token}`);
+            }
+            return headers;
+        }
     }),
     endpoints: (builder) => ({
-        createSolution: builder.mutation<Solution, Partial<Solution>>({
+        createSolution: builder.mutation<Solution, CreateSolutionRequest>({
             query: (newSolution) => ({
                 url: 'Solutions/add',
                 method: 'POST',
@@ -35,5 +48,5 @@ export const solutionsApi = createApi({
 })
 
 export const {
-
+    useCreateSolutionMutation,
 } = solutionsApi;

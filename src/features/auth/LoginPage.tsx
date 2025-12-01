@@ -16,14 +16,11 @@ export const LoginPage = () => {
             const response = await loginRequest({ login, password }).unwrap();
             localStorage.setItem("access_token", response.accessToken.token);
             localStorage.setItem("refresh_token", response.refreshToken);
+            navigate("/exercises");
         }
         catch (error) {
-            console.log(error);
+            console.log("Login error:", error);
         }
-    };
-
-    const enterButtonClick = () => {
-        navigate('/exercises');
     };
 
     return (
@@ -76,7 +73,7 @@ export const LoginPage = () => {
                             />
                         </svg>
                     </div>
-                    <button type="submit" disabled={isLoading} onClick={enterButtonClick}> {/* нужно ли ентер? он сразу переходит*/}
+                    <button type="submit" disabled={isLoading}>
                         {isLoading ? "Вход..." : "Войти"}
                     </button>
                 </form>
