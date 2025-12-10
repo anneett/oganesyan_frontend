@@ -5,6 +5,7 @@ import "./Exercises.css";
 export function Exercises() {
     const { data: exercises, isLoading, error } = useGetExercisesQuery();
 
+
     if (isLoading) return <div>Загрузка...</div>;
     if (error) return <div>Ошибка загрузки</div>;
 
@@ -13,6 +14,7 @@ export function Exercises() {
             <main className="content">
 
                 <Link to="/profile" className="header-link">Профиль</Link>
+                <Link to="/users" className="header-link">Пользователи</Link>
                 <button className="logout-btn">Выйти</button>
                 <h1>Список упражнений</h1>
 

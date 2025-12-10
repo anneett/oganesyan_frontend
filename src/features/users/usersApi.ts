@@ -1,9 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type {Exercise} from "../exercises/exercisesApi.ts";
 
 export interface User {
     id: number;
-    username: string;
+    userName: string;
     login: string;
     isAdmin: boolean;
 }

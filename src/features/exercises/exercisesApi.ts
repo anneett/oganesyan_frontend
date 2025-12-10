@@ -9,13 +9,15 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export interface Exercise {
     id: number;
     title: string;
-//     difficulty: ExerciseDifficulty;
+//  difficulty: ExerciseDifficulty;
     difficulty: 0 | 1 | 2;
     correctAnswer: string;
 }
 
-export interface QueryResult {
-    result: string;
+export interface CreateExerciseRequest {
+    title: string;
+    difficulty: number;
+    correctAnswer: string;
 }
 
 export const exercisesApi = createApi({
@@ -31,7 +33,7 @@ export const exercisesApi = createApi({
         }
     }),
     endpoints: (builder) => ({
-        createExercise: builder.mutation<Exercise, Partial<Exercise>>({
+        createExercise: builder.mutation<Exercise, CreateExerciseRequest>({
             query: (newExercise) => ({
                 url: '/Exercises/add',
                 method: 'POST',

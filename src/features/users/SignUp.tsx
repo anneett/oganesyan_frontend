@@ -3,7 +3,7 @@ import { useCreateUserMutation } from "./usersApi.ts";
 import { Link, useNavigate } from "react-router-dom";
 import CryptoJS from "crypto-js";
 import * as React from "react";
-import "../auth/LoginPage.css";
+import "../auth/Login.css";
 
 export const SignUp = () => {
     const navigate = useNavigate();

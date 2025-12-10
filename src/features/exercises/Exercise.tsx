@@ -3,7 +3,6 @@ import { useCreateSolutionMutation } from "../solutions/solutionsApi.ts";
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import * as React from "react";
-import "./Exercise.css";
 
 export function Exercise() {
     const { id } = useParams();

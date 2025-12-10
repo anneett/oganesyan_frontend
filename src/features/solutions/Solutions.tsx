@@ -1,23 +1,22 @@
-import { useGetUsersQuery } from './usersApi';
+import { useGetSolutionsQuery } from './solutionsApi.ts';
 import { useState } from "react";
-import "./Users.css";
 import Search from "../../components/Search.tsx";
 
-export function Users() {
+export function Solutions() {
     const [search, setSearch] = useState("");
 
-    const { data: users, isLoading, error } = useGetUsersQuery();
+    const { data: solutions, isLoading, error } = useGetSolutionsQuery();
 
-    const filtered = users?.filter(user =>
-        user.login.toLowerCase().includes(search.toLowerCase())
-    );
+    // const filtered = users?.filter(user =>
+    //     user.login.toLowerCase().includes(search.toLowerCase())
+    // );
 
     if (isLoading) return <div>Загрузка...</div>;
     if (error) return <div>Ошибка загрузки</div>;
 
     return (
         <div className="users-page">
-            <h1>Пользователи</h1>
+            <h1>Решения</h1>
 
             <Search searchTerm={search}  setSearchTerm={setSearch} />
             <table className="users-table">

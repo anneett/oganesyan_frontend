@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useLoginMutation } from "./authApi";
 import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./LoginPage.css";
+import "./Login.css";
 
-export const LoginPage = () => {
+export const Login = () => {
     const navigate = useNavigate();
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");

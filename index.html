@@ -1,39 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL-тренажёр</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;1,400&family=Noto+Sans+Inscriptional+Parthian&display=swap" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>oganesyan_frontend</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="module" src="/src/main.tsx">
-        import React from "https://esm.sh/react@19?dev";
-        import ReactDOM from "https://esm.sh/react-dom@19/client?dev";
-
-        function User() {
-
-            React.useEffect(() => {
-                fetch("http://localhost:5177/api/Exercises/all")
-                    .then((res) => res.json())
-            }, []);
-
-            return <div>
-                <h1> rfrfjfkdlnsf</h1>
-                <h2>{ Response.json(any, ResponseInit)}</h2>
-            </div>
-        }
-        ReactDOM.createRoot(
-            document.getElementById("root")
-        )
-        .render(
-            <User />
-        );
-    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

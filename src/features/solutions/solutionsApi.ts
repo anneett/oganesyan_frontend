@@ -49,4 +49,5 @@ export const solutionsApi = createApi({
 
 export const {
     useCreateSolutionMutation,
+    useGetSolutionsQuery,
 } = solutionsApi;
