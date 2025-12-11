@@ -1,16 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-// export enum ExerciseDifficulty {
-//     Easy,
-//     Medium,
-//     Hard,
-// }
-
 export interface Exercise {
     id: number;
     title: string;
-//  difficulty: ExerciseDifficulty;
-    difficulty: 0 | 1 | 2;
+    difficulty: number;
     correctAnswer: string;
 }
 
@@ -18,6 +11,15 @@ export interface CreateExerciseRequest {
     title: string;
     difficulty: number;
     correctAnswer: string;
+}
+
+export interface ExerciseStatsDto {
+    exerciseId: number;
+    exerciseTitle: string;
+    totalAttempts: number;
+    uniqueUsers: number;
+    correctAnswers: number;
+    percentCorrect: number
 }
 
 export const exercisesApi = createApi({
@@ -46,6 +48,9 @@ export const exercisesApi = createApi({
         getExercises: builder.query<Exercise[], void>({
             query: () => '/Exercises/all',
         }),
+        getExerciseStats: builder.query<ExerciseStatsDto, number>({
+            query: (id) => `/Exercises/percent/${id}`,
+        }),
     }),
 });
 
@@ -53,4 +58,5 @@ export const {
     useGetExercisesQuery,
     useGetExerciseByIdQuery,
     useCreateExerciseMutation,
+    useGetExerciseStatsQuery,
 } = exercisesApi;

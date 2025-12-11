@@ -1,6 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type {Exercise} from "../exercises/exercisesApi.ts";
-import type {CreateUserRequest, User} from "../users/usersApi.ts";
 
 export interface Solution {
     id: number;
@@ -50,4 +49,5 @@ export const solutionsApi = createApi({
 export const {
     useCreateSolutionMutation,
     useGetSolutionsQuery,
+    useGetSolutionByIdQuery,
 } = solutionsApi;

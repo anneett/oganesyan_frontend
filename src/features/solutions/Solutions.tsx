@@ -1,9 +1,6 @@
 import { useGetSolutionsQuery } from './solutionsApi.ts';
-import { useState } from "react";
-import Search from "../../components/Search.tsx";
 
 export function Solutions() {
-    const [search, setSearch] = useState("");
 
     const { data: solutions, isLoading, error } = useGetSolutionsQuery();
 
@@ -17,8 +14,6 @@ export function Solutions() {
     return (
         <div className="users-page">
             <h1>Решения</h1>
-
-            <Search searchTerm={search}  setSearchTerm={setSearch} />
             <table className="users-table">
                 <thead>
                 <tr>

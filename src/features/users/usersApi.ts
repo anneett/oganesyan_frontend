@@ -43,9 +43,6 @@ export const usersApi = createApi({
                 body: newUser,
             }),
         }),
-        getUserById: builder.query<User, number>({
-            query: (id) => `/Users/${id}`,
-        }),
         getUsers: builder.query<User[], void>({
             query: () => '/Users/all',
         }),
@@ -55,26 +52,26 @@ export const usersApi = createApi({
         getUserStats: builder.query<UserSolution[], void>({
             query: () => '/Users/stat',
         }),
-        updateUser: builder.mutation<User, void>({
-            query: () => '/Users/update',
-            // Создание или обновление?
-        }),
-        updateUserById: builder.mutation<User, number>({
-            query: (id) => `/Users/update/${id}`,
-            // Создание или обновление?
-        }),
-        changeUser: builder.mutation<User, number>({
-            query: (id) => `/Users/change/${id}`,
-            // Обновление?
-        }),
-        deleteUser: builder.mutation<User>({
-            query: () => 'Users/selfdelete',
-            // Как удаление реализовать?
-        }),
-        deleteUserById: builder.mutation<User, number>({
-            query: (id) => `Users/delete/${id}`,
-            // Как удаление реализовать?
-        }),
+        // updateUser: builder.mutation<User, void>({
+        //     query: () => '/Users/update',
+        //     // Создание или обновление?
+        // }),
+        // updateUserById: builder.mutation<User, number>({
+        //     query: (id) => `/Users/update/${id}`,
+        //     // Создание или обновление?
+        // }),
+        // changeUser: builder.mutation<User, number>({
+        //     query: (id) => `/Users/change/${id}`,
+        //     // Обновление?
+        // }),
+        // deleteUser: builder.mutation<User>({
+        //     query: () => 'Users/selfdelete',
+        //     // Как удаление реализовать?
+        // }),
+        // deleteUserById: builder.mutation<User, number>({
+        //     query: (id) => `Users/delete/${id}`,
+        //     // Как удаление реализовать?
+        // }),
     }),
 });
 

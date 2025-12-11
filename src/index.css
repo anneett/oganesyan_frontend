@@ -1,86 +1,27 @@
 @import "tailwindcss";
-@import "tailwindcss/preflight";
+
+@theme {
+    --color-text: oklch(var(--text));
+    --color-background: oklch(var(--background));
+    --color-primary: oklch(var(--primary));
+    --color-secondary: oklch(var(--secondary));
+    --color-accent: oklch(var(--accent));
+}
 
 @layer base {
     :root {
         --text: 17.87% 0.024 92.72;
-        --text-light: 90% 0.01 90;
         --background: 98.52% 0.011 89.72;
         --primary: 50.90% 0.094 95.90;
         --secondary: 83.42% 0.109 182.06;
         --accent: 54.94% 0.130 249.06;
-        --error: 50% 0.2 30;
-
-
-        --font-family-base: 'Noto Sans', system-ui, -apple-system, sans-serif;
-        --font-family-heading: 'Noto Sans Inscriptional Parthian', var(--font-family-base);
-
-        --border-radius-sm: 8px;
-        --border-radius-md: 12px;
-        --border-radius-lg: 16px;
-        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.03);
-        --shadow-md: 0 8px 18px rgba(0, 0, 0, 0.08);
-        --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.1);
     }
 
     .dark {
         --text: 97.27% 0.018 92.68;
-        --text-light: 70% 0.01 90;
         --background: 13.91% 0.021 98.77;
         --primary: 87.02% 0.097 96.95;
-        --secondary: 59.21% 0.1 179.95;
+        --secondary: 59.21% 0.100 179.95;
         --accent: 64.25% 0.129 248.26;
-        --error: 60% 0.2 30;
     }
-
-    body {
-        font-family: var(--font-family-base), serif;
-        background-color: oklch(var(--background));
-        color: oklch(var(--text));
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-
-    h1, h2, h3, h4 {
-        font-family: var(--font-family-heading), serif;
-        font-weight: 600;
-        color: oklch(var(--text));
-    }
-
-    a {
-        color: oklch(var(--accent));
-        text-decoration: none;
-        transition: opacity 0.2s;
-    }
-
-    a:hover {
-        opacity: 0.8;
-    }
-
-    button {
-        border-radius: var(--border-radius-sm);
-        transition: all 0.2s;
-        background-color: oklch(var(--accent));
-        color: white;
-    }
-
-    button:hover {
-        background-color: color-mix(in oklch, oklch(var(--accent)) 90%, black);
-    }
-}
-
-.text-gradient {
-    background: linear-gradient(90deg, oklch(var(--primary)), oklch(var(--accent)));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.wrapper {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
 }
