@@ -5,12 +5,17 @@ export interface User {
     userName: string;
     login: string;
     isAdmin: boolean;
+    inArchive: boolean;
 }
 
 export interface CreateUserRequest {
     userName: string;
     login: string;
     passwordHash: string;
+}
+
+export interface UserUpdateRequest {
+    userName: string;
 }
 
 export interface UserSolution {
@@ -27,6 +32,7 @@ export interface UserSolution {
 
 export const usersApi = createApi({
     reducerPath: "usersApi",
+    tagTypes: ['Profile', 'Users'],
     baseQuery: fetchBaseQuery({
         baseUrl: "http://localhost:5177/api",
         prepareHeaders: (headers) => {
@@ -45,39 +51,46 @@ export const usersApi = createApi({
         }),
         getUsers: builder.query<User[], void>({
             query: () => '/Users/all',
+            providesTags: ['Users'],
         }),
         getUserProfile: builder.query<User, void>({
             query: () => '/Users/profile',
+            providesTags: ['Profile'],
         }),
         getUserStats: builder.query<UserSolution[], void>({
             query: () => '/Users/stat',
         }),
-        // updateUser: builder.mutation<User, void>({
-        //     query: () => '/Users/update',
-        //     // Создание или обновление?
-        // }),
-        // updateUserById: builder.mutation<User, number>({
-        //     query: (id) => `/Users/update/${id}`,
-        //     // Создание или обновление?
-        // }),
-        // changeUser: builder.mutation<User, number>({
-        //     query: (id) => `/Users/change/${id}`,
-        //     // Обновление?
-        // }),
-        // deleteUser: builder.mutation<User>({
-        //     query: () => 'Users/selfdelete',
-        //     // Как удаление реализовать?
-        // }),
-        // deleteUserById: builder.mutation<User, number>({
-        //     query: (id) => `Users/delete/${id}`,
-        //     // Как удаление реализовать?
-        // }),
+        updateUser: builder.mutation<void, UserUpdateRequest>({
+            query: (data) => ({
+                url: '/Users/update',
+                method: 'PATCH',
+                body: data,
+            }),
+            invalidatesTags: ['Profile'],
+        }),
+        changeUser: builder.mutation<void, number>({
+            query: (id) => ({
+                url: `/Users/change/${id}`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: ['Users'],
+        }),
+        archiveUser: builder.mutation<void, number>({
+            query: (id) => ({
+                url: `/Users/archive/${id}`,
+                method: 'PATCH',
+            }),
+            invalidatesTags: ['Users'],
+        }),
     }),
 });
 
 export const {
+    useCreateUserMutation,
     useGetUsersQuery,
     useGetUserProfileQuery,
-    useCreateUserMutation,
     useGetUserStatsQuery,
+    useUpdateUserMutation,
+    useChangeUserMutation,
+    useArchiveUserMutation,
 } = usersApi;
