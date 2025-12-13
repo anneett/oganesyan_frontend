@@ -17,6 +17,24 @@ export interface CreateSolutionRequest {
     userAnswer: string;
 }
 
+export interface ExerciseStatsDto {
+    exerciseId: number;
+    exerciseTitle: string;
+    totalAttempts: number;
+    uniqueUsers: number;
+    correctAnswers: number;
+    percentCorrect: number
+}
+
+export interface UserStatsDto {
+    userId: number;
+    userLogin: string;
+    totalAttempts: number;
+    uniqueExercises: number;
+    correctAnswers: number;
+    percentCorrect: number
+}
+
 export const solutionsApi = createApi({
     reducerPath: 'solutionsApi',
     baseQuery: fetchBaseQuery({
@@ -37,17 +55,17 @@ export const solutionsApi = createApi({
                 body: newSolution,
             })
         }),
-        getSolutionById: builder.query<Solution, number>({
-            query: (id) => `Solution/${id}`
+        getExercisesStats: builder.query<ExerciseStatsDto[], void>({
+            query: () => 'Solutions/exercises-percent',
         }),
-        getSolutions: builder.query<Solution[], void>({
-            query: () => 'Solutions/all',
+        getUsersStats: builder.query<UserStatsDto[], void>({
+            query: () => 'Solutions/users-percent',
         }),
     }),
 })
 
 export const {
     useCreateSolutionMutation,
-    useGetSolutionsQuery,
-    useGetSolutionByIdQuery,
+    useGetExercisesStatsQuery,
+    useGetUsersStatsQuery,
 } = solutionsApi;

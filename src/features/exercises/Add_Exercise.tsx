@@ -44,27 +44,6 @@ export const Add_Exercise = () => {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="border-b border-secondary/20 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <Link
-                        to="/exercises"
-                        className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent hover:opacity-80 transition-opacity"
-                    >
-                        SQL-тренажер
-                    </Link>
-
-                    <Link
-                        to="/exercises"
-                        className="px-4 py-2 text-text/70 hover:text-text hover:bg-secondary/20 rounded-lg transition-all flex items-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        <span>К заданиям</span>
-                    </Link>
-                </div>
-            </header>
-
             <main className="max-w-2xl mx-auto px-4 py-8">
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 rounded-2xl flex items-center justify-center mx-auto mb-4">

@@ -1,22 +1,14 @@
 import { useGetExercisesQuery } from "./exercisesApi.ts";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 
 export function Exercises() {
     const { data: exercises, isLoading, error } = useGetExercisesQuery();
-    const navigate = useNavigate();
     const [search, setSearch] = useState("");
 
     const filtered = exercises?.filter(exercise =>
         exercise.title.toLowerCase().includes(search.toLowerCase())
     );
-
-    const handleLogout = () => {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        navigate("/login");
-    };
-
     const getDifficultyConfig = (difficulty: number) => {
         const configs = [
             { label: "Легкая", color: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -58,56 +50,6 @@ export function Exercises() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="border-b border-secondary/20 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        SQL-тренажер
-                    </h1>
-
-                    <nav className="flex items-center gap-2">
-                        <Link
-                            to="/profile"
-                            className="px-4 py-2 text-text/70 hover:text-text hover:bg-secondary/20 rounded-lg transition-all flex items-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span className="hidden sm:inline">Профиль</span>
-                        </Link>
-
-                        <Link
-                            to="/users"
-                            className="px-4 py-2 text-text/70 hover:text-text hover:bg-secondary/20 rounded-lg transition-all flex items-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            <span className="hidden sm:inline">Пользователи</span>
-                        </Link>
-
-                        <Link
-                            to="/add-exercise"
-                            className="px-4 py-2 text-text/70 hover:text-text hover:bg-secondary/20 rounded-lg transition-all flex items-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            <span className="hidden sm:inline">Добавить задание</span>
-                        </Link>
-
-                        <button
-                            onClick={handleLogout}
-                            className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all flex items-center gap-2"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            <span className="hidden sm:inline">Выйти</span>
-                        </button>
-                    </nav>
-                </div>
-            </header>
-
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                     <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-4">

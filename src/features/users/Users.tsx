@@ -80,14 +80,6 @@ export function Users() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="border-b border-secondary/20 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        SQL-тренажер
-                    </h1>
-                </div>
-            </header>
-
             <main className="max-w-6xl mx-auto px-4 py-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                     <div>

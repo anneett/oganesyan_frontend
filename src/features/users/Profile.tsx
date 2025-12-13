@@ -118,13 +118,6 @@ export function Profile() {
 
     return (
         <div className="min-h-screen bg-background">
-            <header className="border-b border-secondary/20 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                        SQL-тренажер
-                    </h1>
-                </div>
-            </header>
             <main className="max-w-6xl mx-auto px-4 py-8">
                 {updateSuccess && (
                     <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3">
