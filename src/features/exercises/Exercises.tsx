@@ -9,6 +9,7 @@ export function Exercises() {
     const filtered = exercises?.filter(exercise =>
         exercise.title.toLowerCase().includes(search.toLowerCase())
     );
+
     const getDifficultyConfig = (difficulty: number) => {
         const configs = [
             { label: "Легкая", color: "bg-green-500/20 text-green-400 border-green-500/30" },
@@ -31,8 +32,8 @@ export function Exercises() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+            <div className="min-h-screen bg-background flex items-center justify-center px-4">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center max-w-sm w-full">
                     <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -49,35 +50,35 @@ export function Exercises() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            <main className="max-w-6xl mx-auto px-4 py-8">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-4">
-                        <p className="text-text/60 text-sm">Всего заданий</p>
-                        <p className="text-3xl font-bold text-primary">{exercises?.length || 0}</p>
+        <div className="min-h-screen bg-background overflow-x-hidden">
+            <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+                    <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-3 sm:p-4">
+                        <p className="text-text/60 text-xs sm:text-sm">Всего</p>
+                        <p className="text-xl sm:text-3xl font-bold text-primary">{exercises?.length || 0}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-secondary/20 to-secondary/5 border border-secondary/30 rounded-xl p-4">
-                        <p className="text-text/60 text-sm">Выполнено</p>
-                        <p className="text-3xl font-bold text-secondary">0</p>
+                    <div className="bg-gradient-to-br from-secondary/20 to-secondary/5 border border-secondary/30 rounded-xl p-3 sm:p-4">
+                        <p className="text-text/60 text-xs sm:text-sm">Выполнено</p>
+                        <p className="text-xl sm:text-3xl font-bold text-secondary">0</p>
                     </div>
-                    <div className="bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 rounded-xl p-4">
-                        <p className="text-text/60 text-sm">Прогресс</p>
-                        <p className="text-3xl font-bold text-accent">0%</p>
+                    <div className="bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 rounded-xl p-3 sm:p-4">
+                        <p className="text-text/60 text-xs sm:text-sm">Прогресс</p>
+                        <p className="text-xl sm:text-3xl font-bold text-accent">0%</p>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-text">Список упражнений</h2>
-                    <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+                    <h2 className="text-lg sm:text-xl font-semibold text-text">Список упражнений</h2>
+                    <div className="flex gap-2 flex-wrap">
                         <span className="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded-full">Легкие</span>
                         <span className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded-full">Средние</span>
                         <span className="px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded-full">Тяжелые</span>
                     </div>
                 </div>
 
-                <div className="relative mb-6">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <svg className="w-5 h-5 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="relative mb-4 sm:mb-6">
+                    <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
@@ -86,14 +87,14 @@ export function Exercises() {
                         placeholder="Поиск по названию..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-background border border-secondary/30 rounded-xl text-text placeholder-text/40 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                        className="w-full pl-10 sm:pl-12 pr-10 py-2.5 sm:py-3 bg-background border border-secondary/30 rounded-xl text-text text-sm sm:text-base placeholder-text/40 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                     />
                     {search && (
                         <button
                             onClick={() => setSearch("")}
-                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-text/40 hover:text-text transition-colors"
+                            className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center text-text/40 hover:text-text transition-colors"
                         >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
@@ -101,34 +102,62 @@ export function Exercises() {
                 </div>
 
                 {search && (
-                    <p className="text-text/50 text-sm mb-4">
+                    <p className="text-text/50 text-xs sm:text-sm mb-3 sm:mb-4">
                         Найдено: {filtered?.length || 0} из {exercises?.length || 0}
                     </p>
                 )}
 
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                     {filtered?.map((exercise, index) => {
                         const diffConfig = getDifficultyConfig(exercise.difficulty);
                         return (
                             <Link
                                 key={exercise.id}
                                 to={`/exercise/${exercise.id}`}
-                                className="group block bg-background border border-secondary/20 hover:border-accent/50 rounded-xl p-5 transition-all duration-300 hover:shadow-lg hover:shadow-accent/5"
+                                className="group block bg-background border border-secondary/20 hover:border-accent/50 rounded-xl p-4 sm:p-5 transition-all duration-300 hover:shadow-lg hover:shadow-accent/5 overflow-hidden"
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex md:hidden flex-col gap-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                                            <div className="flex-shrink-0 w-10 h-10 bg-secondary/10 group-hover:bg-accent/20 rounded-lg flex items-center justify-center transition-colors">
+                                                <span className="text-sm font-bold text-text/50 group-hover:text-accent transition-colors">
+                                                    {String(index + 1).padStart(2, '0')}
+                                                </span>
+                                            </div>
+                                            <h3 className="font-medium text-text group-hover:text-accent transition-colors text-sm leading-tight line-clamp-2 break-words">
+                                                {exercise.title}
+                                            </h3>
+                                        </div>
+                                        <svg
+                                            className="flex-shrink-0 w-5 h-5 text-text/30 group-hover:text-accent transition-all mt-0.5"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${diffConfig.color}`}>
+                                            {diffConfig.label}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="hidden md:flex items-center gap-4 overflow-hidden">
                                     <div className="flex-shrink-0 w-12 h-12 bg-secondary/10 group-hover:bg-accent/20 rounded-xl flex items-center justify-center transition-colors">
                                         <span className="text-lg font-bold text-text/50 group-hover:text-accent transition-colors">
                                             {String(index + 1).padStart(2, '0')}
                                         </span>
                                     </div>
 
-                                    <div className="flex-grow min-w-0">
+                                    <div className="flex-1 min-w-0 overflow-hidden">
                                         <h3 className="font-medium text-text group-hover:text-accent transition-colors truncate">
                                             {exercise.title}
                                         </h3>
                                     </div>
 
-                                    <div className={`flex-shrink-0 px-3 py-1 text-sm font-medium rounded-full border ${diffConfig.color}`}>
+                                    <div className={`flex-shrink-0 px-3 py-1 text-sm font-medium rounded-full border whitespace-nowrap ${diffConfig.color}`}>
                                         {diffConfig.label}
                                     </div>
 
@@ -148,10 +177,10 @@ export function Exercises() {
                     {filtered?.length === 0 && (
                         <div className="text-center py-12">
                             <svg className="w-12 h-12 text-text/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                             <p className="text-text/50">
-                                {search ? "Задания не найдены" : "Задания пока нет"}
+                                {search ? "Задания не найдены" : "Заданий пока нет"}
                             </p>
                         </div>
                     )}
