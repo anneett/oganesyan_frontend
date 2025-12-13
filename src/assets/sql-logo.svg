@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="250" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- Буква S -->
+    <text x="90" y="175"
+          font-size="168"
+          font-family="Arial, sans-serif"
+          fill="#e6d58a"
+          stroke="#8e7e38"
+          stroke-width="3">S</text>
+
+    <!-- Нижний "блин" -->
+    <ellipse cx="300" cy="170" rx="80" ry="18"
+             fill="#1f9180" stroke="#187769" stroke-width="3"/>
+    <rect x="220" y="150" width="160" height="20"
+          fill="#1f9180"/>
+    <ellipse cx="300" cy="150" rx="80" ry="18"
+             fill="#44b0a0" stroke="#187769" stroke-width="3"/>
+    <line x1="220" y1="150" x2="220" y2="170"
+          stroke="#187769" stroke-width="3"/>
+    <line x1="380" y1="150" x2="380" y2="170"
+          stroke="#187769" stroke-width="3"/>
+
+    <!-- Средний "блин" Q -->
+    <ellipse cx="300" cy="130" rx="80" ry="18"
+             fill="#bba95c" stroke="#8e7e38" stroke-width="3"/>
+    <rect x="220" y="110" width="160" height="20"
+          fill="#bba95c"/>
+    <ellipse cx="300" cy="110" rx="80" ry="18"
+             fill="#e6d58a" stroke="#8e7e38" stroke-width="3"/>
+    <line x1="220" y1="110" x2="220" y2="130"
+          stroke="#8e7e38" stroke-width="3"/>
+    <line x1="380" y1="110" x2="380" y2="130"
+          stroke="#8e7e38" stroke-width="3"/>
+
+    <!-- Хвостик Q из полигонов -->
+    <polygon points="330,127 370,120 400,125 370,135"
+             fill="#e6d58a" stroke="#8e7e38" stroke-width="3"/>
+    <polygon points="370,135 400,125 400,140 370,150"
+             fill="#bba95c" stroke="#8e7e38" stroke-width="3"/>
+    <polygon points="330,127 370,135 370,150 330,145"
+             fill="#a99747" stroke="#8e7e38" stroke-width="3"/>
+
+    <!-- Верхний "блин" -->
+    <ellipse cx="300" cy="90" rx="80" ry="18"
+             fill="#1f9180" stroke="#187769" stroke-width="3"/>
+    <rect x="220" y="70" width="160" height="20"
+          fill="#1f9180"/>
+    <ellipse cx="300" cy="70" rx="80" ry="18"
+             fill="#44b0a0" stroke="#187769" stroke-width="3"/>
+    <line x1="220" y1="70" x2="220" y2="90"
+          stroke="#187769" stroke-width="3"/>
+    <line x1="380" y1="70" x2="380" y2="90"
+          stroke="#187769" stroke-width="3"/>
+
+    <!-- Буква L -->
+    <text x="420" y="175"
+          font-size="168"
+          font-family="Arial, sans-serif"
+          fill="#e6d58a"
+          stroke="#8e7e38"
+          stroke-width="3">L</text>
+
+</svg>
