@@ -1,5 +1,8 @@
 import { useGetExercisesStatsQuery, useGetUsersStatsQuery } from './solutionsApi.ts';
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+type SortSuccess = 'default' | 'high-first' | 'low-first';
+type SortAttempts = 'default' | 'most-first' | 'least-first';
 
 export function Solutions() {
     const { data: exerciseStats, isLoading: loadingExercises, error: errorExercises } = useGetExercisesStatsQuery();
@@ -7,6 +10,9 @@ export function Solutions() {
 
     const [search, setSearch] = useState("");
     const [showUserStats, setShowUserStats] = useState(false);
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [sortSuccess, setSortSuccess] = useState<SortSuccess>('default');
+    const [sortAttempts, setSortAttempts] = useState<SortAttempts>('default');
 
     const isLoading = loadingExercises || loadingUsers;
     const hasError = errorExercises || errorUsers;
@@ -18,6 +24,50 @@ export function Solutions() {
     const filteredUsers = userStats?.filter(stat =>
         stat.userLogin.toLowerCase().includes(search.toLowerCase())
     ) || [];
+
+    const sortedExercises = useMemo(() => {
+        if (sortSuccess === 'default' && sortAttempts === 'default') return filteredExercises;
+
+        return [...filteredExercises].sort((a, b) => {
+            if (sortSuccess === 'high-first') {
+                const diff = b.percentCorrect - a.percentCorrect;
+                if (diff !== 0) return diff;
+            } else if (sortSuccess === 'low-first') {
+                const diff = a.percentCorrect - b.percentCorrect;
+                if (diff !== 0) return diff;
+            }
+
+            if (sortAttempts === 'most-first') {
+                return b.totalAttempts - a.totalAttempts;
+            } else if (sortAttempts === 'least-first') {
+                return a.totalAttempts - b.totalAttempts;
+            }
+
+            return 0;
+        });
+    }, [filteredExercises, sortSuccess, sortAttempts]);
+
+    const sortedUsers = useMemo(() => {
+        if (sortSuccess === 'default' && sortAttempts === 'default') return filteredUsers;
+
+        return [...filteredUsers].sort((a, b) => {
+            if (sortSuccess === 'high-first') {
+                const diff = b.percentCorrect - a.percentCorrect;
+                if (diff !== 0) return diff;
+            } else if (sortSuccess === 'low-first') {
+                const diff = a.percentCorrect - b.percentCorrect;
+                if (diff !== 0) return diff;
+            }
+
+            if (sortAttempts === 'most-first') {
+                return b.totalAttempts - a.totalAttempts;
+            } else if (sortAttempts === 'least-first') {
+                return a.totalAttempts - b.totalAttempts;
+            }
+
+            return 0;
+        });
+    }, [filteredUsers, sortSuccess, sortAttempts]);
 
     const totalExerciseAttempts = exerciseStats?.reduce((sum, s) => sum + s.totalAttempts, 0) || 0;
     const totalUserAttempts = userStats?.reduce((sum, s) => sum + s.totalAttempts, 0) || 0;
@@ -41,6 +91,18 @@ export function Solutions() {
         if (percent >= 40) return "bg-gradient-to-r from-yellow-500 to-yellow-400";
         return "bg-gradient-to-r from-red-500 to-red-400";
     };
+
+    const clearFilters = () => {
+        setSortSuccess('default');
+        setSortAttempts('default');
+    };
+
+    const hasActiveFilters = sortSuccess !== 'default' || sortAttempts !== 'default';
+
+    const activeFiltersCount = [
+        sortSuccess !== 'default',
+        sortAttempts !== 'default'
+    ].filter(Boolean).length;
 
     if (isLoading) {
         return (
@@ -187,34 +249,191 @@ export function Solutions() {
                 </div>
             </div>
 
-            <div className="relative mb-6">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-                <input
-                    type="text"
-                    placeholder={showUserStats ? "Поиск по логину..." : "Поиск по названию задания..."}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-background border border-secondary/30 rounded-xl text-text placeholder-text/40 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
-                />
-                {search && (
-                    <button
-                        onClick={() => setSearch("")}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-text/40 hover:text-text transition-colors"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="relative flex-grow">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg className="w-5 h-5 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                    </button>
-                )}
+                    </div>
+                    <input
+                        type="text"
+                        placeholder={showUserStats ? "Поиск по логину..." : "Поиск по названию задания..."}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-background border border-secondary/30 rounded-xl text-text placeholder-text/40 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                    />
+                    {search && (
+                        <button
+                            onClick={() => setSearch("")}
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-text/40 hover:text-text transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    )}
+                </div>
+
+                <button
+                    onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                    className={`relative flex items-center gap-2 px-4 py-3 rounded-xl border transition-all whitespace-nowrap ${
+                        isFiltersOpen || hasActiveFilters
+                            ? 'bg-accent/10 border-accent/50 text-accent'
+                            : 'bg-background border-secondary/30 text-text/70 hover:border-accent/30 hover:text-text'
+                    }`}
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <span className="text-sm font-medium">Сортировка</span>
+
+                    {activeFiltersCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-accent text-background text-xs font-bold rounded-full flex items-center justify-center">
+                            {activeFiltersCount}
+                        </span>
+                    )}
+
+                    <svg
+                        className={`w-4 h-4 transition-transform duration-200 ${isFiltersOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
             </div>
+
+            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isFiltersOpen ? 'max-h-96 opacity-100 mb-4' : 'max-h-0 opacity-0'
+            }`}>
+                <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4">
+                    <div className="flex flex-col gap-4">
+                        <div>
+                            <label className="block text-xs text-text/50 mb-2">По успешности</label>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => setSortSuccess('default')}
+                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                        sortSuccess === 'default'
+                                            ? 'bg-accent text-background'
+                                            : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                    }`}
+                                >
+                                    Без сортировки
+                                </button>
+                                <button
+                                    onClick={() => setSortSuccess('high-first')}
+                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                                        sortSuccess === 'high-first'
+                                            ? 'bg-green-500/20 text-green-400 border-green-500/50'
+                                            : 'bg-green-500/10 text-green-400/70 border-green-500/20 hover:bg-green-500/20'
+                                    }`}
+                                >
+                                    ↑ Сначала успешные
+                                </button>
+                                <button
+                                    onClick={() => setSortSuccess('low-first')}
+                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                                        sortSuccess === 'low-first'
+                                            ? 'bg-red-500/20 text-red-400 border-red-500/50'
+                                            : 'bg-red-500/10 text-red-400/70 border-red-500/20 hover:bg-red-500/20'
+                                    }`}
+                                >
+                                    ↓ Сначала неуспешные
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs text-text/50 mb-2">По количеству попыток</label>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => setSortAttempts('default')}
+                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                        sortAttempts === 'default'
+                                            ? 'bg-accent text-background'
+                                            : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                    }`}
+                                >
+                                    Без сортировки
+                                </button>
+                                <button
+                                    onClick={() => setSortAttempts('most-first')}
+                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                                        sortAttempts === 'most-first'
+                                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+                                            : 'bg-blue-500/10 text-blue-400/70 border-blue-500/20 hover:bg-blue-500/20'
+                                    }`}
+                                >
+                                    ↑ Сначала больше попыток
+                                </button>
+                                <button
+                                    onClick={() => setSortAttempts('least-first')}
+                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                                        sortAttempts === 'least-first'
+                                            ? 'bg-purple-500/20 text-purple-400 border-purple-500/50'
+                                            : 'bg-purple-500/10 text-purple-400/70 border-purple-500/20 hover:bg-purple-500/20'
+                                    }`}
+                                >
+                                    ↓ Сначала меньше попыток
+                                </button>
+                            </div>
+                        </div>
+
+                        {hasActiveFilters && (
+                            <div className="pt-3 border-t border-secondary/20">
+                                <button
+                                    onClick={clearFilters}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Сбросить сортировку
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {!isFiltersOpen && hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-secondary/5 rounded-lg border border-secondary/20">
+                    <span className="text-xs text-text/50">Сортировка:</span>
+
+                    {sortSuccess !== 'default' && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                            sortSuccess === 'high-first' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        }`}>
+                            {sortSuccess === 'high-first' ? '↑ Сначала успешные' : '↓ Сначала неуспешные'}
+                            <button onClick={() => setSortSuccess('default')} className="hover:opacity-70">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </span>
+                    )}
+
+                    {sortAttempts !== 'default' && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                            sortAttempts === 'most-first' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                        }`}>
+                            {sortAttempts === 'most-first' ? '↑ Больше попыток' : '↓ Меньше попыток'}
+                            <button onClick={() => setSortAttempts('default')} className="hover:opacity-70">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </span>
+                    )}
+                </div>
+            )}
 
             {search && (
                 <p className="text-text/50 text-sm mb-4">
-                    Найдено: {showUserStats ? filteredUsers.length : filteredExercises.length} из {showUserStats ? userStats?.length : exerciseStats?.length}
+                    Найдено: {showUserStats ? sortedUsers.length : sortedExercises.length} из {showUserStats ? userStats?.length : exerciseStats?.length}
                 </p>
             )}
 
@@ -245,7 +464,7 @@ export function Solutions() {
                         </thead>
                         <tbody className="divide-y divide-secondary/10">
                         {showUserStats ? (
-                            filteredUsers.map((stat, index) => (
+                            sortedUsers.map((stat, index) => (
                                 <tr key={stat.userId} className="hover:bg-secondary/5 transition-colors">
                                     <td className="px-4 py-4">
                                             <span className="text-text/40 font-mono text-sm">
@@ -289,7 +508,7 @@ export function Solutions() {
                                 </tr>
                             ))
                         ) : (
-                            filteredExercises.map((stat, index) => (
+                            sortedExercises.map((stat, index) => (
                                 <tr key={stat.exerciseId} className="hover:bg-secondary/5 transition-colors">
                                     <td className="px-4 py-4">
                                             <span className="text-text/40 font-mono text-sm">
@@ -337,7 +556,7 @@ export function Solutions() {
                     </table>
                 </div>
 
-                {((showUserStats && filteredUsers.length === 0) || (!showUserStats && filteredExercises.length === 0)) && (
+                {((showUserStats && sortedUsers.length === 0) || (!showUserStats && sortedExercises.length === 0)) && (
                     <div className="text-center py-12">
                         <svg className="w-12 h-12 text-text/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -350,14 +569,6 @@ export function Solutions() {
                                     : "Нет данных по заданиям"
                             }
                         </p>
-                        {search && (
-                            <button
-                                onClick={() => setSearch("")}
-                                className="mt-3 text-accent hover:text-accent/80 text-sm transition-colors"
-                            >
-                                Сбросить поиск
-                            </button>
-                        )}
                     </div>
                 )}
             </div>

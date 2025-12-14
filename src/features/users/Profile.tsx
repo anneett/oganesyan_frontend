@@ -1,6 +1,11 @@
 import { useGetUserProfileQuery, useGetUserStatsQuery, useUpdateUserMutation } from "./usersApi.ts";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import * as React from "react";
+
+type SortDate = 'newest' | 'oldest';
+type SortCorrectness = 'all' | 'correct-first' | 'incorrect-first';
+type SortDifficulty = 'default' | 'easy-first' | 'hard-first';
 
 export function Profile() {
     const { data: user, isLoading: loadingUser, error: errorUser } = useGetUserProfileQuery();
@@ -12,9 +17,17 @@ export function Profile() {
     const [updateError, setUpdateError] = useState<string | null>(null);
     const [updateSuccess, setUpdateSuccess] = useState(false);
 
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [sortDate, setSortDate] = useState<SortDate>('newest');
+    const [sortCorrectness, setSortCorrectness] = useState<SortCorrectness>('all');
+    const [sortDifficulty, setSortDifficulty] = useState<SortDifficulty>('default');
+
+    const isInitialized = useRef(false);
+
     useEffect(() => {
-        if (user?.userName) {
+        if (user?.userName && !isInitialized.current) {
             setUserName(user.userName);
+            isInitialized.current = true;
         }
     }, [user?.userName]);
 
@@ -23,6 +36,34 @@ export function Profile() {
     const totalSolutions = stats?.length || 0;
     const correctSolutions = stats?.filter(s => s.isCorrect).length || 0;
     const successRate = totalSolutions > 0 ? Math.round((correctSolutions / totalSolutions) * 100) : 0;
+
+    const filteredAndSortedStats = useMemo(() => {
+        if (!stats) return [];
+
+        return [...stats].sort((a, b) => {
+            if (sortCorrectness === 'correct-first') {
+                const correctDiff = (b.isCorrect ? 1 : 0) - (a.isCorrect ? 1 : 0);
+                if (correctDiff !== 0) return correctDiff;
+            } else if (sortCorrectness === 'incorrect-first') {
+                const correctDiff = (a.isCorrect ? 1 : 0) - (b.isCorrect ? 1 : 0);
+                if (correctDiff !== 0) return correctDiff;
+            }
+
+            if (sortDifficulty === 'easy-first') {
+                const diffDiff = a.exerciseDifficulty - b.exerciseDifficulty;
+                if (diffDiff !== 0) return diffDiff;
+            } else if (sortDifficulty === 'hard-first') {
+                const diffDiff = b.exerciseDifficulty - a.exerciseDifficulty;
+                if (diffDiff !== 0) return diffDiff;
+            }
+
+            if (sortDate === 'newest') {
+                return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+            } else {
+                return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
+            }
+        });
+    }, [stats, sortDate, sortCorrectness, sortDifficulty]);
 
     const getDifficultyConfig = (difficulty: number) => {
         const configs = [
@@ -33,6 +74,20 @@ export function Profile() {
         return configs[difficulty] || configs[0];
     };
 
+    const clearFilters = () => {
+        setSortDate('newest');
+        setSortCorrectness('all');
+        setSortDifficulty('default');
+    };
+
+    const hasActiveFilters = sortDate !== 'newest' || sortCorrectness !== 'all' || sortDifficulty !== 'default';
+
+    const activeFiltersCount = [
+        sortDate !== 'newest',
+        sortCorrectness !== 'all',
+        sortDifficulty !== 'default'
+    ].filter(Boolean).length;
+
     const handleEditClick = () => {
         setIsEditing(true);
         setUpdateError(null);
@@ -41,7 +96,9 @@ export function Profile() {
 
     const handleCancelEdit = () => {
         setIsEditing(false);
-        setUserName(user?.userName || "");
+        if (user?.userName) {
+            setUserName(user.userName);
+        }
         setUpdateError(null);
     };
 
@@ -69,7 +126,7 @@ export function Profile() {
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            handleSaveClick();
+            void handleSaveClick();
         } else if (e.key === 'Escape') {
             handleCancelEdit();
         }
@@ -246,106 +303,302 @@ export function Profile() {
                     </div>
                 </div>
 
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold text-text mb-2">История решений</h2>
-                    <p className="text-text/50 text-sm">Все ваши попытки решения задач</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 className="text-xl font-semibold text-text">История решений</h2>
+                        <p className="text-text/50 text-sm">Все ваши попытки решения задач</p>
+                    </div>
+
+                    {stats && stats.length > 0 && (
+                        <button
+                            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                                isFiltersOpen || hasActiveFilters
+                                    ? 'bg-accent/10 border-accent/50 text-accent'
+                                    : 'bg-background border-secondary/30 text-text/70 hover:border-accent/30 hover:text-text'
+                            }`}
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span className="text-sm font-medium">Сортировка</span>
+
+                            {activeFiltersCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-accent text-background text-xs font-bold rounded-full flex items-center justify-center">
+                                    {activeFiltersCount}
+                                </span>
+                            )}
+
+                            <svg
+                                className={`w-4 h-4 transition-transform duration-200 ${isFiltersOpen ? 'rotate-180' : ''}`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
+
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    isFiltersOpen ? 'max-h-96 opacity-100 mb-4' : 'max-h-0 opacity-0'
+                }`}>
+                    <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4">
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <label className="block text-xs text-text/50 mb-2">По дате</label>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => setSortDate('newest')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                            sortDate === 'newest'
+                                                ? 'bg-accent text-background'
+                                                : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                        }`}
+                                    >
+                                        Сначала новые
+                                    </button>
+                                    <button
+                                        onClick={() => setSortDate('oldest')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                            sortDate === 'oldest'
+                                                ? 'bg-accent text-background'
+                                                : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                        }`}
+                                    >
+                                        Сначала старые
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-text/50 mb-2">По результату</label>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => setSortCorrectness('all')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                            sortCorrectness === 'all'
+                                                ? 'bg-accent text-background'
+                                                : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                        }`}
+                                    >
+                                        Все
+                                    </button>
+                                    <button
+                                        onClick={() => setSortCorrectness('correct-first')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                            sortCorrectness === 'correct-first'
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                        }`}
+                                    >
+                                        ✓ Сначала верные
+                                    </button>
+                                    <button
+                                        onClick={() => setSortCorrectness('incorrect-first')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                            sortCorrectness === 'incorrect-first'
+                                                ? 'bg-red-500 text-white'
+                                                : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                        }`}
+                                    >
+                                        ✗ Сначала ошибки
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-text/50 mb-2">По сложности</label>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => setSortDifficulty('default')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                            sortDifficulty === 'default'
+                                                ? 'bg-accent text-background'
+                                                : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                                        }`}
+                                    >
+                                        Без сортировки
+                                    </button>
+                                    <button
+                                        onClick={() => setSortDifficulty('easy-first')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                                            sortDifficulty === 'easy-first'
+                                                ? 'bg-green-500/20 text-green-400 border-green-500/50'
+                                                : 'bg-green-500/10 text-green-400/70 border-green-500/20 hover:bg-green-500/20'
+                                        }`}
+                                    >
+                                        Сначала лёгкие
+                                    </button>
+                                    <button
+                                        onClick={() => setSortDifficulty('hard-first')}
+                                        className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                                            sortDifficulty === 'hard-first'
+                                                ? 'bg-red-500/20 text-red-400 border-red-500/50'
+                                                : 'bg-red-500/10 text-red-400/70 border-red-500/20 hover:bg-red-500/20'
+                                        }`}
+                                    >
+                                        Сначала сложные
+                                    </button>
+                                </div>
+                            </div>
+
+                            {hasActiveFilters && (
+                                <div className="pt-3 border-t border-secondary/20">
+                                    <button
+                                        onClick={clearFilters}
+                                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        Сбросить сортировку
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {!isFiltersOpen && hasActiveFilters && (
+                    <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-secondary/5 rounded-lg border border-secondary/20">
+                        <span className="text-xs text-text/50">Сортировка:</span>
+
+                        {sortDate !== 'newest' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-accent/20 text-accent rounded-full">
+                                {sortDate === 'oldest' ? 'Сначала старые' : 'Сначала новые'}
+                                <button onClick={() => setSortDate('newest')} className="hover:opacity-70">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </span>
+                        )}
+
+                        {sortCorrectness !== 'all' && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                                sortCorrectness === 'correct-first' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
+                                {sortCorrectness === 'correct-first' ? 'Сначала верные' : 'Сначала ошибки'}
+                                <button onClick={() => setSortCorrectness('all')} className="hover:opacity-70">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </span>
+                        )}
+
+                        {sortDifficulty !== 'default' && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                                sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
+                                {sortDifficulty === 'easy-first' ? 'Сначала лёгкие' : 'Сначала сложные'}
+                                <button onClick={() => setSortDifficulty('default')} className="hover:opacity-70">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </span>
+                        )}
+                    </div>
+                )}
 
                 <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="bg-secondary/10 border-b border-secondary/20">
-                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                        Задание
-                                    </th>
-                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                        Сложность
-                                    </th>
-                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden lg:table-cell">
-                                        Правильный ответ
-                                    </th>
-                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden lg:table-cell">
-                                        Ваш ответ
-                                    </th>
-                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                        Результат
-                                    </th>
-                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden md:table-cell">
-                                        Дата
-                                    </th>
-                                </tr>
+                            <tr className="bg-secondary/10 border-b border-secondary/20">
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    Задание
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    Сложность
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden lg:table-cell">
+                                    Правильный ответ
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden lg:table-cell">
+                                    Ваш ответ
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    Результат
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden md:table-cell">
+                                    Дата
+                                </th>
+                            </tr>
                             </thead>
                             <tbody className="divide-y divide-secondary/10">
-                                {stats?.map((solution) => {
-                                    const diffConfig = getDifficultyConfig(solution.exerciseDifficulty);
-                                    return (
-                                        <tr
-                                            key={solution.solutionId}
-                                            className="hover:bg-secondary/5 transition-colors"
-                                        >
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full ${solution.isCorrect ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                                                    <span className="font-medium text-text">
-                                                    {solution.exerciseTitle}
+                            {filteredAndSortedStats.map((solution) => {
+                                const diffConfig = getDifficultyConfig(solution.exerciseDifficulty);
+                                return (
+                                    <tr
+                                        key={solution.solutionId}
+                                        className="hover:bg-secondary/5 transition-colors"
+                                    >
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-2 h-2 rounded-full ${solution.isCorrect ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                                <span className="font-medium text-text">
+                                                        {solution.exerciseTitle}
+                                                    </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                                <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${diffConfig.color}`}>
+                                                    {diffConfig.label}
                                                 </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                            <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${diffConfig.color}`}>
-                                                {diffConfig.label}
-                                            </span>
-                                            </td>
-                                            <td className="px-4 py-4 hidden lg:table-cell">
-                                                <code className="px-2 py-1 bg-secondary/10 rounded text-sm text-text/70 font-mono">
-                                                    {solution.correctAnswer.length > 30
-                                                        ? solution.correctAnswer.substring(0, 30) + "..."
-                                                        : solution.correctAnswer}
-                                                </code>
-                                            </td>
-                                            <td className="px-4 py-4 hidden lg:table-cell">
-                                                <code className={`px-2 py-1 rounded text-sm font-mono ${
-                                                    solution.isCorrect
-                                                        ? 'bg-green-500/10 text-green-400'
-                                                        : 'bg-red-500/10 text-red-400'
-                                                }`}>
-                                                    {solution.userAnswer.length > 30
-                                                        ? solution.userAnswer.substring(0, 30) + "..."
-                                                        : solution.userAnswer}
-                                                </code>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                {solution.isCorrect ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-500/20 text-green-400 text-sm font-medium rounded-full">
-                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Верно
-                                                </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 text-red-400 text-sm font-medium rounded-full">
-                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Ошибка
-                                                </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-4 hidden md:table-cell">
-                                                <div className="text-text/50 text-sm">
-                                                    <p>{new Date(solution.submittedAt).toLocaleDateString('ru-RU')}</p>
-                                                    <p className="text-text/30 text-xs">
-                                                        {new Date(solution.submittedAt).toLocaleTimeString('ru-RU', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                        </td>
+                                        <td className="px-4 py-4 hidden lg:table-cell">
+                                            <code className="px-2 py-1 bg-secondary/10 rounded text-sm text-text/70 font-mono">
+                                                {solution.correctAnswer.length > 30
+                                                    ? solution.correctAnswer.substring(0, 30) + "..."
+                                                    : solution.correctAnswer}
+                                            </code>
+                                        </td>
+                                        <td className="px-4 py-4 hidden lg:table-cell">
+                                            <code className={`px-2 py-1 rounded text-sm font-mono ${
+                                                solution.isCorrect
+                                                    ? 'bg-green-500/10 text-green-400'
+                                                    : 'bg-red-500/10 text-red-400'
+                                            }`}>
+                                                {solution.userAnswer.length > 30
+                                                    ? solution.userAnswer.substring(0, 30) + "..."
+                                                    : solution.userAnswer}
+                                            </code>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            {solution.isCorrect ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-500/20 text-green-400 text-sm font-medium rounded-full">
+                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Верно
+                                                    </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 text-red-400 text-sm font-medium rounded-full">
+                                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Ошибка
+                                                    </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-4 hidden md:table-cell">
+                                            <div className="text-text/50 text-sm">
+                                                <p>{new Date(solution.submittedAt).toLocaleDateString('ru-RU')}</p>
+                                                <p className="text-text/30 text-xs">
+                                                    {new Date(solution.submittedAt).toLocaleTimeString('ru-RU', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             </tbody>
                         </table>
                     </div>

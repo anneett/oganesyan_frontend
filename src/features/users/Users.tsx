@@ -1,5 +1,7 @@
 import { useGetUsersQuery, useArchiveUserMutation, useChangeUserMutation, useGetUserProfileQuery } from './usersApi';
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+type SortRole = 'all' | 'admins-first' | 'users-first';
 
 export function Users() {
     const { data: users, isLoading, error } = useGetUsersQuery();
@@ -11,18 +13,35 @@ export function Users() {
     const [showArchive, setShowArchive] = useState(false);
     const [actionUserId, setActionUserId] = useState<number | null>(null);
 
+    const [sortRole, setSortRole] = useState<SortRole>('all');
+
     const activeUsers = users?.filter(user => !user.inArchive) || [];
     const archivedUsers = users?.filter(user => user.inArchive) || [];
 
     const currentList = showArchive ? archivedUsers : activeUsers;
 
-    const filtered = currentList?.filter(user =>
-        user.login.toLowerCase().includes(search.toLowerCase()) ||
-        user.userName.toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = useMemo(() => {
+        return currentList
+            .filter(user =>
+                user.login.toLowerCase().includes(search.toLowerCase()) ||
+                user.userName.toLowerCase().includes(search.toLowerCase())
+            )
+            .sort((a, b) => {
+                if (sortRole === 'admins-first') {
+                    const roleDiff = (b.isAdmin ? 1 : 0) - (a.isAdmin ? 1 : 0);
+                    if (roleDiff !== 0) return roleDiff;
+                } else if (sortRole === 'users-first') {
+                    const roleDiff = (a.isAdmin ? 1 : 0) - (b.isAdmin ? 1 : 0);
+                    if (roleDiff !== 0) return roleDiff;
+                }
+                return a.id - b.id;
+            });
+    }, [currentList, search, sortRole]);
 
     const adminCount = currentList.filter(u => u.isAdmin).length;
     const userCount = currentList.length - adminCount;
+
+    const hasActiveFilter = sortRole !== 'all';
 
     const handleChangeRole = async (userId: number) => {
         setActionUserId(userId);
@@ -170,7 +189,7 @@ export function Users() {
                     </div>
                 </div>
 
-                <div className="relative mb-6">
+                <div className="relative mb-4">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg className="w-5 h-5 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -195,175 +214,211 @@ export function Users() {
                     )}
                 </div>
 
-                {search && (
-                    <p className="text-text/50 text-sm mb-4">
-                        Найдено: {filtered?.length || 0} из {users?.length || 0}
-                    </p>
-                )}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-sm text-text/50">Сортировка:</span>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setSortRole('all')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                sortRole === 'all'
+                                    ? 'bg-accent text-background'
+                                    : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                            }`}
+                        >
+                            Все
+                        </button>
+                        <button
+                            onClick={() => setSortRole('admins-first')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                sortRole === 'admins-first'
+                                    ? 'bg-accent text-background'
+                                    : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                            }`}
+                        >
+                            🛡️ Сначала админы
+                        </button>
+                        <button
+                            onClick={() => setSortRole('users-first')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                sortRole === 'users-first'
+                                    ? 'bg-primary text-background'
+                                    : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                            }`}
+                        >
+                            👤 Сначала пользователи
+                        </button>
+                    </div>
+
+                    {(search || hasActiveFilter) && (
+                        <span className="text-xs text-text/40 ml-auto">
+                            Найдено: {filtered.length}
+                        </span>
+                    )}
+                </div>
 
                 <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="bg-secondary/10 border-b border-secondary/20">
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
-                                        ID
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
-                                        Логин
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
-                                        Имя
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
-                                        Роль
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
-                                        Изменить роль
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
-                                        {showArchive ? "Восстановить" : "В архив"}
-                                    </th>
-                                </tr>
+                            <tr className="bg-secondary/10 border-b border-secondary/20">
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
+                                    ID
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
+                                    Логин
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
+                                    Имя
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
+                                    Роль
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
+                                    Изменить роль
+                                </th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-text/70 uppercase tracking-wider">
+                                    {showArchive ? "Восстановить" : "В архив"}
+                                </th>
+                            </tr>
                             </thead>
                             <tbody className="divide-y divide-secondary/10">
-                                {filtered?.map((user) => {
-                                    const isSelf = isCurrentUser(user.id);
-                                    const isProcessing = actionUserId === user.id;
+                            {filtered?.map((user) => {
+                                const isSelf = isCurrentUser(user.id);
+                                const isProcessing = actionUserId === user.id;
 
-                                    return (
-                                        <tr
-                                            key={user.id}
-                                            className={`transition-colors ${
-                                                isSelf
-                                                    ? "bg-primary/5 border-l-4 border-l-primary"
-                                                    : "hover:bg-secondary/5"
-                                            }`}
-                                        >
-                                            <td className="px-6 py-4">
+                                return (
+                                    <tr
+                                        key={user.id}
+                                        className={`transition-colors ${
+                                            isSelf
+                                                ? "bg-primary/5 border-l-4 border-l-primary"
+                                                : "hover:bg-secondary/5"
+                                        }`}
+                                    >
+                                        <td className="px-6 py-4">
                                                 <span className="text-text/50 font-mono text-sm">
-                                                    #{user.id}
+                                                    {user.id}
                                                 </span>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                                        isSelf
-                                                            ? "bg-gradient-to-br from-primary to-accent"
-                                                            : "bg-gradient-to-br from-primary/30 to-accent/30"
-                                                    }`}>
-                                                            <span className={`text-xs font-bold uppercase ${
-                                                                isSelf ? "text-background" : "text-text"
-                                                            }`}>
-                                                                {user.login.charAt(0)}
-                                                            </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                            <span className="font-medium text-text">
-                                                                {user.login}
-                                                            </span>
-                                                        {isSelf && (
-                                                            <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-full">
-                                                                    Вы
-                                                                </span>
-                                                        )}
-                                                    </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                                    isSelf
+                                                        ? "bg-gradient-to-br from-primary to-accent"
+                                                        : "bg-gradient-to-br from-primary/30 to-accent/30"
+                                                }`}>
+                                                        <span className={`text-xs font-bold uppercase ${
+                                                            isSelf ? "text-background" : "text-text"
+                                                        }`}>
+                                                            {user.login.charAt(0)}
+                                                        </span>
                                                 </div>
-                                            </td>
+                                                <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-text">
+                                                            {user.login}
+                                                        </span>
+                                                    {isSelf && (
+                                                        <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-full">
+                                                                Вы
+                                                            </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
 
-                                            <td className="px-6 py-4 text-text/70">
-                                                {user.userName}
-                                            </td>
+                                        <td className="px-6 py-4 text-text/70">
+                                            {user.userName}
+                                        </td>
 
-                                            <td className="px-6 py-4">
-                                                {user.isAdmin ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent/20 text-accent text-sm font-medium rounded-full border border-accent/30">
+                                        <td className="px-6 py-4">
+                                            {user.isAdmin ? (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent/20 text-accent text-sm font-medium rounded-full border border-accent/30">
                                                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                                             <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                                         </svg>
                                                         Админ
                                                     </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-3 py-1 bg-secondary/10 text-text/50 text-sm rounded-full border border-secondary/20">
+                                            ) : (
+                                                <span className="inline-flex items-center px-3 py-1 bg-secondary/10 text-text/50 text-sm rounded-full border border-secondary/20">
                                                         Пользователь
-                                                </span>
-                                                )}
-                                            </td>
+                                                    </span>
+                                            )}
+                                        </td>
 
-                                            <td className="px-4 py-4">
-                                                {isSelf ? (
-                                                    <span className="text-text/30 text-sm italic">
-                                                            Недоступно
-                                                        </span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleChangeRole(user.id)}
-                                                        disabled={isProcessing || isChangingRole}
-                                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                            user.isAdmin
-                                                                ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
-                                                                : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30"
-                                                        }`}
-                                                    >
-                                                        {isProcessing && isChangingRole ? (
-                                                            <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
-                                                        ) : user.isAdmin ? (
-                                                            <>
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                </svg>
-                                                                Снять админа
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                                                </svg>
-                                                                Сделать админом
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                )}
-                                            </td>
+                                        <td className="px-4 py-4">
+                                            {isSelf ? (
+                                                <span className="text-text/30 text-sm italic">
+                                                        Недоступно
+                                                    </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleChangeRole(user.id)}
+                                                    disabled={isProcessing || isChangingRole}
+                                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                        user.isAdmin
+                                                            ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
+                                                            : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30"
+                                                    }`}
+                                                >
+                                                    {isProcessing && isChangingRole ? (
+                                                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
+                                                    ) : user.isAdmin ? (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                            Снять админа
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                            </svg>
+                                                            Сделать админом
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </td>
 
-                                            <td className="px-4 py-4">
-                                                {isSelf ? (
-                                                    <span className="text-text/30 text-sm italic">
-                                                            Недоступно
-                                                        </span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleArchive(user.id)}
-                                                        disabled={isProcessing || isArchiving}
-                                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                            showArchive
-                                                                ? "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30"
-                                                                : "bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                                                        }`}
-                                                    >
-                                                        {isProcessing && isArchiving ? (
-                                                            <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
-                                                        ) : showArchive ? (
-                                                            <>
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                                </svg>
-                                                                Восстановить
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                                                                </svg>
-                                                                В архив
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                        <td className="px-4 py-4">
+                                            {isSelf ? (
+                                                <span className="text-text/30 text-sm italic">
+                                                        Недоступно
+                                                    </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleArchive(user.id)}
+                                                    disabled={isProcessing || isArchiving}
+                                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                        showArchive
+                                                            ? "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30"
+                                                            : "bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                                                    }`}
+                                                >
+                                                    {isProcessing && isArchiving ? (
+                                                        <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"></div>
+                                                    ) : showArchive ? (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                            </svg>
+                                                            Восстановить
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                                            </svg>
+                                                            В архив
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             </tbody>
                         </table>
                     </div>
