@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { useLoginMutation } from "./authApi";
+import { authApi, useLoginMutation } from "./authApi";
 import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { usersApi } from "../users/usersApi.ts";
+import { exercisesApi } from "../exercises/exercisesApi.ts";
+import { solutionsApi } from "../solutions/solutionsApi.ts";
 
 export const Login = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [login, setLogin] = useState("");
     const [password, setPassword] = useState("");
     const [loginRequest, { error, isLoading }] = useLoginMutation();
@@ -12,6 +17,11 @@ export const Login = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            dispatch(authApi.util.resetApiState());
+            dispatch(usersApi.util.resetApiState());
+            dispatch(exercisesApi.util.resetApiState());
+            dispatch(solutionsApi.util.resetApiState());
+
             const response = await loginRequest({ login, password }).unwrap();
             localStorage.setItem("access_token", response.accessToken.token);
             localStorage.setItem("refresh_token", response.refreshToken);
@@ -19,6 +29,24 @@ export const Login = () => {
         } catch (error) {
             console.log("Login error:", error);
         }
+    };
+
+    const getErrorMessage = () => {
+        if (!error) return "";
+
+        if ('status' in error && 'data' in error) {
+            const errorData = error.data as { message?: string };
+
+            if (errorData.message === "Your account has been archived.") {
+                return "Ваш аккаунт находится в архиве";
+            }
+            if (errorData.message === "Wrong login/password.") {
+                return "Неверный логин или пароль";
+            }
+            return errorData.message || "Неверный логин или пароль";
+        }
+
+        return "Ошибка входа";
     };
 
     return (
@@ -91,7 +119,7 @@ export const Login = () => {
 
                 {error && (
                     <p className="mt-4 text-center text-red-500 bg-red-500/10 py-2 rounded-lg">
-                        Неверный логин или пароль
+                        {getErrorMessage()}
                     </p>
                 )}
 

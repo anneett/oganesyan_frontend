@@ -1,17 +1,29 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useGetUserProfileQuery } from "../features/users/usersApi";
+import { useDispatch } from "react-redux";
+import { authApi } from "../features/auth/authApi";
+import { usersApi } from "../features/users/usersApi";
+import { exercisesApi } from "../features/exercises/exercisesApi";
+import { solutionsApi } from "../features/solutions/solutionsApi";
 import sqlLogo from "../assets/sql-logo.svg";
 
 export const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const location = useLocation();
     const { data: user } = useGetUserProfileQuery();
 
     const handleLogout = () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+
+        dispatch(authApi.util.resetApiState());
+        dispatch(usersApi.util.resetApiState());
+        dispatch(exercisesApi.util.resetApiState());
+        dispatch(solutionsApi.util.resetApiState());
+
         setIsMenuOpen(false);
         navigate("/login");
     };
