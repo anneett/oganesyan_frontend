@@ -1,186 +1,198 @@
 import { useState } from "react";
-import * as React from "react";
-import { useCreateExerciseMutation } from "./exercisesApi.ts";
+import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { getApiErrorMessage } from "../../app/getApiErrorMessage";
+import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
+import { useCreateExerciseMutation } from "./exercisesApi";
+
+const difficultyOptions = [
+    { value: 0 as const, label: "Легкая", idle: "border-green-500/25 bg-green-500/10 text-green-300", active: "border-green-400 bg-green-500/20 text-green-200" },
+    { value: 1 as const, label: "Средняя", idle: "border-yellow-500/25 bg-yellow-500/10 text-yellow-300", active: "border-yellow-400 bg-yellow-500/20 text-yellow-100" },
+    { value: 2 as const, label: "Сложная", idle: "border-red-500/25 bg-red-500/10 text-red-300", active: "border-red-400 bg-red-500/20 text-red-100" },
+];
 
 export const Add_Exercise = () => {
     const [title, setTitle] = useState("");
-    const [difficulty, setDifficulty] = useState<number | null>(null);
+    const [difficulty, setDifficulty] = useState<0 | 1 | 2>(0);
+    const [databaseMetaId, setDatabaseMetaId] = useState<number>(0);
     const [correctAnswer, setCorrectAnswer] = useState("");
-    const [success, setSuccess] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+    const [messageTone, setMessageTone] = useState<"success" | "error">("success");
 
-    const [createExercise, { error, isLoading }] = useCreateExerciseMutation();
+    const { data: databaseMetas = [], isLoading: isLoadingMetas } = useGetDatabaseMetasQuery();
+    const [createExercise, { isLoading }] = useCreateExerciseMutation();
 
-    const difficulties = [
-        { value: 0, label: "Легкий", color: "border-green-500 bg-green-500/10 text-green-400", activeColor: "border-green-500 bg-green-500/20 text-green-400 ring-2 ring-green-500/30" },
-        { value: 1, label: "Средний", color: "border-yellow-500 bg-yellow-500/10 text-yellow-400", activeColor: "border-yellow-500 bg-yellow-500/20 text-yellow-400 ring-2 ring-yellow-500/30" },
-        { value: 2, label: "Сложный", color: "border-red-500 bg-red-500/10 text-red-400", activeColor: "border-red-500 bg-red-500/20 text-red-400 ring-2 ring-red-500/30" },
-    ];
+    const effectiveDatabaseMetaId = databaseMetaId || databaseMetas[0]?.id || 0;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (difficulty === null) return;
+    const handleSubmit = async (event: FormEvent) => {
+        event.preventDefault();
 
         try {
             await createExercise({
                 title,
                 difficulty,
+                databaseMetaId: effectiveDatabaseMetaId,
                 correctAnswer,
             }).unwrap();
 
-            setSuccess(true);
+            setMessageTone("success");
+            setMessage("Задание успешно создано и привязано к выбранной логической БД.");
             setTitle("");
-            setDifficulty(null);
+            setDifficulty(0);
             setCorrectAnswer("");
-
-            setTimeout(() => setSuccess(false), 3000);
         } catch (error) {
-            console.error("Ошибка добавления задания:", error);
+            setMessageTone("error");
+            setMessage(getApiErrorMessage(error, "Не удалось создать задание."));
         }
     };
 
-    const isFormValid = title.trim() && difficulty !== null && correctAnswer.trim();
+    const isFormValid = title.trim() && correctAnswer.trim() && effectiveDatabaseMetaId !== 0;
 
     return (
-        <div className="min-h-screen bg-background">
-            <main className="max-w-2xl mx-auto px-4 py-8">
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                    </div>
-                    <h1 className="text-3xl font-bold text-text mb-2">Новое задание</h1>
-                    <p className="text-text/50">Создайте новое SQL-упражнение для студентов</p>
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+            <section className="mb-8 overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(212,179,104,0.15),rgba(64,110,132,0.14),rgba(70,175,171,0.12))] p-6 shadow-2xl shadow-black/20 sm:p-8">
+                <p className="mb-3 text-xs uppercase tracking-[0.3em] text-text/40">Exercise Builder</p>
+                <h1 className="text-3xl font-semibold text-text sm:text-4xl">Создание задания с привязкой к логической БД</h1>
+                <p className="mt-4 max-w-3xl text-base leading-7 text-text/65">
+                    Каждое упражнение связано с конкретной схемой данных. Это позволяет запускать обычный режим
+                    и контрольную на нужном развертывании без ручных доработок.
+                </p>
+            </section>
+
+            {message && (
+                <div
+                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${
+                        messageTone === "success"
+                            ? "border-green-500/25 bg-green-500/10 text-green-300"
+                            : "border-red-500/25 bg-red-500/10 text-red-300"
+                    }`}
+                >
+                    {message}
                 </div>
+            )}
 
-                {success && (
-                    <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3 animate-pulse">
-                        <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <div>
-                            <p className="font-medium text-green-400">Задание успешно создано!</p>
-                            <p className="text-green-400/70 text-sm">Можете добавить ещё одно или вернуться к списку</p>
-                        </div>
+            <section className="grid gap-6 xl:grid-cols-[1fr,0.9fr]">
+                <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-semibold text-text">Параметры задания</h2>
+                        <p className="mt-1 text-sm text-text/55">Название, сложность, логическая БД и эталонный SQL-запрос.</p>
                     </div>
-                )}
 
-                <div className="bg-background border border-secondary/20 rounded-2xl p-6 sm:p-8">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-text/70 mb-2">
-                                Название задания
-                            </label>
-                            <div className="relative">
+                    {isLoadingMetas ? (
+                        <p className="text-text/55">Загружаем список логических БД...</p>
+                    ) : databaseMetas.length === 0 ? (
+                        <div className="rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-10 text-center">
+                            <p className="text-text/55">Сначала нужно создать хотя бы одну логическую БД.</p>
+                            <Link
+                                to="/admin/databases"
+                                className="mt-4 inline-flex rounded-2xl bg-accent/15 px-4 py-2 font-medium text-accent transition hover:bg-accent/20"
+                            >
+                                Перейти в раздел баз
+                            </Link>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-text/70">Название задания</label>
                                 <input
                                     type="text"
-                                    placeholder="Введите название задания..."
                                     value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    className="w-full px-4 py-3 pl-12 bg-background border border-secondary/30 rounded-xl text-text placeholder-text/40 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                                    onChange={(event) => setTitle(event.target.value)}
+                                    placeholder="Например: найти всех клиентов без заказов"
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 text-text outline-none transition focus:border-accent/50"
                                 />
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <svg className="w-5 h-5 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-text/70">Логическая БД</label>
+                                <select
+                                    value={effectiveDatabaseMetaId}
+                                    onChange={(event) => setDatabaseMetaId(Number(event.target.value))}
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 text-text outline-none transition focus:border-accent/50"
+                                >
+                                    {databaseMetas.map((databaseMeta) => (
+                                        <option key={databaseMeta.id} value={databaseMeta.id}>
+                                            {databaseMeta.logicalName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="mb-3 block text-sm font-medium text-text/70">Сложность</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {difficultyOptions.map((option) => {
+                                        const active = option.value === difficulty;
+
+                                        return (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                onClick={() => setDifficulty(option.value)}
+                                                className={`rounded-2xl border px-4 py-4 font-medium transition ${
+                                                    active ? option.active : option.idle
+                                                }`}
+                                            >
+                                                {option.label}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-text/70 mb-3">
-                                Уровень сложности
-                            </label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {difficulties.map((diff) => (
-                                    <button
-                                        key={diff.value}
-                                        type="button"
-                                        onClick={() => setDifficulty(diff.value)}
-                                        className={`px-4 py-3 rounded-xl border font-medium transition-all ${
-                                            difficulty === diff.value
-                                                ? diff.activeColor
-                                                : `${diff.color} hover:opacity-80`
-                                        }`}
-                                    >
-                                        <div className="flex flex-col items-center gap-1">
-                                            {diff.value === 0}
-                                            {diff.value === 1}
-                                            {diff.value === 2}
-                                            <span className="text-sm">{diff.label}</span>
-                                        </div>
-                                    </button>
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-text/70">Правильный SQL-ответ</label>
+                                <textarea
+                                    rows={8}
+                                    value={correctAnswer}
+                                    onChange={(event) => setCorrectAnswer(event.target.value)}
+                                    placeholder="SELECT ..."
+                                    className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 font-mono text-sm text-text outline-none transition focus:border-accent/50"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row">
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || !isFormValid}
+                                    className="flex-1 rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-semibold text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
+                                >
+                                    {isLoading ? "Создание..." : "Создать задание"}
+                                </button>
+                                <Link
+                                    to="/exercises"
+                                    className="flex-1 rounded-2xl border border-white/10 bg-black/15 px-5 py-3 text-center font-medium text-text transition hover:bg-black/20"
+                                >
+                                    Вернуться к списку
+                                </Link>
+                            </div>
+                        </form>
+                    )}
+                </div>
+
+                <aside className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
+                    <h2 className="text-2xl font-semibold text-text">Подсказки</h2>
+                    <div className="mt-5 space-y-4 text-sm leading-6 text-text/60">
+                        <p>Выбирайте логическую БД внимательно: именно по ней потом ищутся развертывания для решения.</p>
+                        <p>Эталонный SQL должен возвращать тот же результат, что и ожидаемый ответ студента.</p>
+                        <p>Если схема еще не создана, сначала добавьте ее в разделе управления базами.</p>
+                    </div>
+
+                    {databaseMetas.length > 0 && (
+                        <div className="mt-6 rounded-3xl border border-white/8 bg-black/15 p-5">
+                            <p className="text-sm font-medium text-text/70">Доступные логические БД</p>
+                            <div className="mt-4 space-y-3">
+                                {databaseMetas.map((databaseMeta) => (
+                                    <div key={databaseMeta.id} className="rounded-2xl border border-white/8 bg-[#0f1720] px-4 py-3">
+                                        <p className="font-medium text-text">{databaseMeta.logicalName}</p>
+                                        <p className="mt-1 text-sm text-text/45">{databaseMeta.description}</p>
+                                    </div>
                                 ))}
                             </div>
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-text/70 mb-2">
-                                Правильный ответ (SQL-запрос)
-                            </label>
-                            <div className="relative">
-                                <textarea
-                                    placeholder="Введите правильный ответ..."
-                                    value={correctAnswer}
-                                    onChange={(e) => setCorrectAnswer(e.target.value)}
-                                    rows={4}
-                                    className="w-full px-4 py-3 bg-background border border-secondary/30 rounded-xl text-text placeholder-text/40 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all font-mono text-sm resize-none"
-                                />
-                                <div className="absolute top-3 right-3">
-                                    <span className="px-2 py-1 bg-secondary/20 text-text/40 text-xs rounded-md font-mono">
-                                        SQL
-                                    </span>
-                                </div>
-                            </div>
-                            <p className="mt-2 text-text/40 text-sm">
-                                Введите эталонный SQL-запрос для проверки ответов студентов
-                            </p>
-                        </div>
-
-                        {error && (
-                            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
-                                <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <p className="text-red-400">Ошибка добавления задания. Попробуйте ещё раз.</p>
-                            </div>
-                        )}
-
-                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                            <button
-                                type="submit"
-                                disabled={isLoading || !isFormValid}
-                                className="flex-1 py-3 px-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 disabled:from-primary/50 disabled:to-primary/30 text-background font-semibold rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin"></div>
-                                        Добавление...
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                        </svg>
-                                        Создать задание
-                                    </>
-                                )}
-                            </button>
-
-                            <Link
-                                to="/exercises"
-                                className="py-3 px-6 border border-secondary/30 text-text/70 hover:text-text hover:bg-secondary/10 font-medium rounded-xl transition-all text-center"
-                            >
-                                Отмена
-                            </Link>
-                        </div>
-                    </form>
-                </div>
-            </main>
+                    )}
+                </aside>
+            </section>
         </div>
     );
 };

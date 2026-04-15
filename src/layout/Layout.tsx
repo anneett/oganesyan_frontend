@@ -1,18 +1,102 @@
-import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useGetUserProfileQuery } from "../features/users/usersApi";
 import { useDispatch } from "react-redux";
+import sqlLogo from "../assets/sql-logo.svg";
 import { authApi } from "../features/auth/authApi";
-import { usersApi } from "../features/users/usersApi";
+import { databaseMetasApi } from "../features/databaseMetas/databaseMetasApi";
 import { exercisesApi } from "../features/exercises/exercisesApi";
 import { solutionsApi } from "../features/solutions/solutionsApi";
-import sqlLogo from "../assets/sql-logo.svg";
+import { useGetUserProfileQuery, usersApi } from "../features/users/usersApi";
+
+type NavItem = {
+    to: string;
+    label: string;
+    icon: ReactNode;
+};
+
+const userMenuItems: NavItem[] = [
+    {
+        to: "/exercises",
+        label: "Задания",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 8 2 2 4-4" />
+            </svg>
+        ),
+    },
+    {
+        to: "/exam",
+        label: "Контрольная",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+        ),
+    },
+    {
+        to: "/profile",
+        label: "Профиль",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-8 9a6 6 0 0 0-6 6h20a6 6 0 0 0-6-6H8Z" />
+            </svg>
+        ),
+    },
+];
+
+const adminMenuItems: NavItem[] = [
+    {
+        to: "/admin/databases",
+        label: "Базы данных",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7c0-1.657 3.582-3 8-3s8 1.343 8 3-3.582 3-8 3-8-1.343-8-3Zm0 5c0 1.657 3.582 3 8 3s8-1.343 8-3m-16 5c0 1.657 3.582 3 8 3s8-1.343 8-3" />
+            </svg>
+        ),
+    },
+    {
+        to: "/add-exercise",
+        label: "Новое задание",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 5v14m-7-7h14" />
+            </svg>
+        ),
+    },
+    {
+        to: "/solutions",
+        label: "Статистика",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 18v-5m5 5V6m5 12v-8" />
+            </svg>
+        ),
+    },
+    {
+        to: "/users",
+        label: "Пользователи",
+        icon: (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 20a5 5 0 0 0-10 0m13 0a4 4 0 0 0-3-3.873M4 20a4 4 0 0 1 3-3.873M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 4a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM7 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+            </svg>
+        ),
+    },
+];
+
+const isPathActive = (pathname: string, target: string) => {
+    if (target === "/exercises" && pathname.startsWith("/exercise/")) {
+        return true;
+    }
+
+    return pathname === target || pathname.startsWith(`${target}/`);
+};
 
 export const Layout = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const location = useLocation();
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const location = useLocation();
     const { data: user } = useGetUserProfileQuery();
 
     const handleLogout = () => {
@@ -23,229 +107,184 @@ export const Layout = () => {
         dispatch(usersApi.util.resetApiState());
         dispatch(exercisesApi.util.resetApiState());
         dispatch(solutionsApi.util.resetApiState());
+        dispatch(databaseMetasApi.util.resetApiState());
 
         setIsMenuOpen(false);
         navigate("/login");
     };
 
-    const isActive = (path: string) => location.pathname === path;
-
-    const menuItems = [
-        {
-            to: "/exercises",
-            label: "Задания",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-            ),
-        },
-        {
-            to: "/profile",
-            label: "Профиль",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-            ),
-        },
-    ];
-
-    const adminItems = [
-        {
-            to: "/users",
-            label: "Пользователи",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-            ),
-        },
-        {
-            to: "/solutions",
-            label: "Решения",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            ),
-        },
-        {
-            to: "/add-exercise",
-            label: "Добавить задание",
-            icon: (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-            ),
-        },
-    ];
-
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(55,95,110,0.18),_transparent_35%),linear-gradient(180deg,_rgba(16,20,26,1)_0%,_rgba(11,14,19,1)_100%)] text-text">
             {isMenuOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                <button
+                    type="button"
+                    className="fixed inset-0 z-40 bg-black/60 lg:hidden"
                     onClick={() => setIsMenuOpen(false)}
+                    aria-label="Закрыть меню"
                 />
             )}
 
             <aside
-                className={`fixed top-0 left-0 h-full w-72 bg-background border-r border-secondary/20 z-50 transform transition-transform duration-300 ease-in-out ${
+                className={`fixed inset-y-0 left-0 z-50 w-[19rem] border-r border-white/8 bg-[#101820]/95 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0 ${
                     isMenuOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
             >
-                <div className="p-3.5 border-b border-secondary/20 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-                            <span className="text-lg font-bold text-background uppercase">
-                                {user?.userName?.charAt(0) || user?.login?.charAt(0) || "?"}
-                            </span>
-                        </div>
+                <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+                    <Link to="/exercises" className="flex items-center gap-3" onClick={() => setIsMenuOpen(false)}>
+                        <img src={sqlLogo} alt="SQL Trainer" className="h-10 w-auto" />
                         <div>
-                            <p className="font-medium text-text text-sm">{user?.userName}</p>
-                            <p className="text-text/50 text-xs">@{user?.login}</p>
+                            <p className="text-sm font-medium text-text/55">Практика и контроль</p>
+                            <p className="text-lg font-semibold text-text">SQL-тренажер</p>
                         </div>
-                    </div>
+                    </Link>
+
                     <button
+                        type="button"
+                        className="rounded-xl p-2 text-text/50 transition hover:bg-white/6 hover:text-text lg:hidden"
                         onClick={() => setIsMenuOpen(false)}
-                        className="p-2 text-text/50 hover:text-text hover:bg-secondary/20 rounded-lg transition-colors"
+                        aria-label="Закрыть меню"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18 18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-1">
-                    <p className="text-text/40 text-xs uppercase tracking-wider mb-2 px-3">Навигация</p>
+                <div className="border-b border-white/8 px-5 py-5">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/4 p-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-secondary to-accent text-lg font-bold text-background shadow-lg shadow-primary/15">
+                            {user?.userName?.charAt(0) || user?.login?.charAt(0) || "?"}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="truncate font-semibold text-text">{user?.userName || "Пользователь"}</p>
+                            <p className="truncate text-sm text-text/50">@{user?.login || "guest"}</p>
+                        </div>
+                    </div>
+                </div>
 
-                    {menuItems.map((item) => (
-                        <Link
-                            key={item.to}
-                            to={item.to}
-                            onClick={() => setIsMenuOpen(false)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                                isActive(item.to)
-                                    ? "bg-primary/20 text-primary"
-                                    : "text-text/70 hover:text-text hover:bg-secondary/20"
-                            }`}
-                        >
-                            {item.icon}
-                            <span>{item.label}</span>
-                            {isActive(item.to) && (
-                                <div className="ml-auto w-1.5 h-1.5 bg-primary rounded-full" />
-                            )}
-                        </Link>
-                    ))}
+                <nav className="flex h-[calc(100%-220px)] flex-col gap-6 overflow-y-auto px-4 py-5">
+                    <div>
+                        <p className="px-3 pb-2 text-xs uppercase tracking-[0.22em] text-text/35">Основное</p>
+                        <div className="space-y-1.5">
+                            {userMenuItems.map((item) => {
+                                const active = isPathActive(location.pathname, item.to);
+
+                                return (
+                                    <Link
+                                        key={item.to}
+                                        to={item.to}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className={`group flex items-center gap-3 rounded-2xl px-3 py-3 transition ${
+                                            active
+                                                ? "bg-gradient-to-r from-primary/18 via-primary/10 to-accent/18 text-text shadow-lg shadow-primary/5"
+                                                : "text-text/65 hover:bg-white/6 hover:text-text"
+                                        }`}
+                                    >
+                                        <span className={active ? "text-primary" : "text-text/45 group-hover:text-accent"}>{item.icon}</span>
+                                        <span className="font-medium">{item.label}</span>
+                                        {active && <span className="ml-auto h-2 w-2 rounded-full bg-accent" />}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     {user?.isAdmin && (
-                        <>
-                            <div className="pt-4 pb-2">
-                                <p className="text-text/40 text-xs uppercase tracking-wider px-3 flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    Администратор
-                                </p>
-                            </div>
+                        <div>
+                            <p className="px-3 pb-2 text-xs uppercase tracking-[0.22em] text-text/35">Администрирование</p>
+                            <div className="space-y-1.5">
+                                {adminMenuItems.map((item) => {
+                                    const active = isPathActive(location.pathname, item.to);
 
-                            {adminItems.map((item) => (
-                                <Link
-                                    key={item.to}
-                                    to={item.to}
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                                        isActive(item.to)
-                                            ? "bg-accent/20 text-accent"
-                                            : "text-text/70 hover:text-text hover:bg-secondary/20"
-                                    }`}
-                                >
-                                    {item.icon}
-                                    <span>{item.label}</span>
-                                    {isActive(item.to) && (
-                                        <div className="ml-auto w-1.5 h-1.5 bg-accent rounded-full" />
-                                    )}
-                                </Link>
-                            ))}
-                        </>
+                                    return (
+                                        <Link
+                                            key={item.to}
+                                            to={item.to}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className={`group flex items-center gap-3 rounded-2xl px-3 py-3 transition ${
+                                                active
+                                                    ? "bg-gradient-to-r from-accent/22 to-secondary/18 text-text shadow-lg shadow-accent/5"
+                                                    : "text-text/65 hover:bg-white/6 hover:text-text"
+                                            }`}
+                                        >
+                                            <span className={active ? "text-accent" : "text-text/45 group-hover:text-secondary"}>{item.icon}</span>
+                                            <span className="font-medium">{item.label}</span>
+                                            {active && <span className="ml-auto h-2 w-2 rounded-full bg-secondary" />}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     )}
                 </nav>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-secondary/20">
+                <div className="absolute inset-x-0 bottom-0 border-t border-white/8 bg-[#101820] px-4 py-4">
                     <button
+                        type="button"
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 font-medium text-red-300 transition hover:bg-red-500/15 hover:text-red-200"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
                         </svg>
-                        <span>Выйти</span>
+                        Выйти из аккаунта
                     </button>
                 </div>
             </aside>
 
-            <header className="sticky top-0 z-30 border-b border-secondary/20 bg-background/80 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsMenuOpen(true)}
-                            className="p-2 text-text/70 hover:text-text hover:bg-secondary/20 rounded-lg transition-colors"
-                            aria-label="Открыть меню"
-                        >
-                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-
-                        <Link to="/exercises" className="flex items-center gap-3">
-                            <img src={sqlLogo} alt="SQL Trainer" className="h-10 w-auto" />
-                            <span className="hidden sm:block text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                                SQL-тренажер
-                            </span>
-                        </Link>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        {user?.isAdmin && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 bg-accent/20 text-accent text-xs font-medium rounded-full">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            <div className="lg:pl-[19rem]">
+                <header className="sticky top-0 z-30 border-b border-white/8 bg-[#0d1218]/82 backdrop-blur-xl">
+                    <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setIsMenuOpen(true)}
+                                className="rounded-2xl border border-white/8 bg-white/4 p-2.5 text-text/70 transition hover:bg-white/8 hover:text-text lg:hidden"
+                                aria-label="Открыть меню"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7h16M4 12h16M4 17h16" />
                                 </svg>
-                                Админ
-                            </span>
-                        )}
+                            </button>
+
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.25em] text-text/35">SQL Workspace</p>
+                                <h1 className="text-lg font-semibold text-text">
+                                    {location.pathname.startsWith("/admin")
+                                        ? "Панель управления"
+                                        : location.pathname === "/exam"
+                                            ? "Режим контрольной"
+                                            : "Учебный портал"}
+                                </h1>
+                            </div>
+                        </div>
 
                         <Link
                             to="/profile"
-                            className="flex items-center gap-2 p-1.5 pr-3 bg-secondary/10 hover:bg-secondary/20 rounded-full transition-colors"
+                            className="flex items-center gap-3 rounded-full border border-white/8 bg-white/4 px-2 py-2 pr-4 transition hover:bg-white/8"
                         >
-                            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-                                <span className="text-sm font-bold text-background uppercase">
-                                    {user?.userName?.charAt(0) || "?"}
-                                </span>
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-bold text-background">
+                                {user?.userName?.charAt(0) || user?.login?.charAt(0) || "?"}
                             </div>
-                            <span className="hidden sm:block text-sm text-text/70">
-                                {user?.userName}
-                            </span>
+                            <div className="hidden text-right sm:block">
+                                <p className="text-sm font-medium text-text">{user?.userName || "Профиль"}</p>
+                                <p className="text-xs text-text/45">{user?.isAdmin ? "Администратор" : "Студент"}</p>
+                            </div>
                         </Link>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <main className="flex-grow">
-                <Outlet />
-            </main>
+                <main className="min-h-[calc(100vh-148px)]">
+                    <Outlet />
+                </main>
 
-            <footer className="border-t border-secondary/20 bg-background/50">
-                <div className="max-w-7xl mx-auto px-4 py-6">
-                    <div className="flex justify-center">
-                        <p className="text-text/50 text-sm">
-                            © 2025 SQL-тренажер. Практикуй SQL-запросы
-                        </p>
+                <footer className="border-t border-white/8 bg-[#0d1218]/82">
+                    <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-sm text-text/40 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <p>SQL-тренажер для практики, проверки и контрольных работ.</p>
+                        <p>Выбор СУБД, реальные развертывания и проверка запросов по результату.</p>
                     </div>
-                </div>
-            </footer>
+                </footer>
+            </div>
         </div>
     );
 };

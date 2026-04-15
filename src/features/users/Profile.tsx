@@ -1,6 +1,6 @@
 import { useGetUserProfileQuery, useGetUserStatsQuery, useUpdateUserMutation, useGenerateTelegramLinkMutation, useUnlinkTelegramMutation } from "./usersApi.ts";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import * as React from "react";
 
 type SortDate = 'newest' | 'oldest';
@@ -45,15 +45,6 @@ export function Profile() {
             console.error("Ошибка отвязки:", error);
         }
     };
-
-    const isInitialized = useRef(false);
-
-    useEffect(() => {
-        if (user?.userName && !isInitialized.current) {
-            setUserName(user.userName);
-            isInitialized.current = true;
-        }
-    }, [user?.userName]);
 
     const hasError = errorUser || errorStats;
 
@@ -114,6 +105,7 @@ export function Profile() {
 
     const handleEditClick = () => {
         setIsEditing(true);
+        setUserName(user?.userName ?? "");
         setUpdateError(null);
         setUpdateSuccess(false);
     };

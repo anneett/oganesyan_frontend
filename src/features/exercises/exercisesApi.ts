@@ -1,15 +1,18 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "../../app/baseQuery";
 
 export interface Exercise {
     id: number;
     title: string;
-    difficulty: number;
+    difficulty: 0 | 1 | 2;
+    databaseMetaId: number;
     correctAnswer: string;
 }
 
 export interface CreateExerciseRequest {
     title: string;
-    difficulty: number;
+    difficulty: 0 | 1 | 2;
+    databaseMetaId: number;
     correctAnswer: string;
 }
 
@@ -19,34 +22,28 @@ export interface ExerciseStatsDto {
     totalAttempts: number;
     uniqueUsers: number;
     correctAnswers: number;
-    percentCorrect: number
+    percentCorrect: number;
 }
 
 export const exercisesApi = createApi({
     reducerPath: "exercisesApi",
-    baseQuery: fetchBaseQuery({
-        baseUrl: 'http://localhost:5177/api',
-        prepareHeaders: (headers) => {
-            const token = localStorage.getItem("access_token");
-            if (token) {
-                headers.set("Authorization", `Bearer ${token}`);
-            }
-            return headers;
-        }
-    }),
+    baseQuery,
+    tagTypes: ["Exercises"],
     endpoints: (builder) => ({
         createExercise: builder.mutation<Exercise, CreateExerciseRequest>({
-            query: (newExercise) => ({
-                url: '/Exercises/add',
-                method: 'POST',
-                body: newExercise,
+            query: (payload) => ({
+                url: "/Exercises/add",
+                method: "POST",
+                body: payload,
             }),
+            invalidatesTags: ["Exercises"],
         }),
         getExerciseById: builder.query<Exercise, number>({
             query: (id) => `/Exercises/${id}`,
         }),
         getExercises: builder.query<Exercise[], void>({
-            query: () => '/Exercises/all',
+            query: () => "/Exercises/all",
+            providesTags: ["Exercises"],
         }),
         getExerciseStats: builder.query<ExerciseStatsDto, number>({
             query: (id) => `/Exercises/percent/${id}`,

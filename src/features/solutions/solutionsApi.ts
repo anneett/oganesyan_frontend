@@ -1,19 +1,22 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { Exercise } from "../exercises/exercisesApi.ts";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "../../app/baseQuery";
+import type { Exercise } from "../exercises/exercisesApi";
 
 export interface Solution {
     id: number;
     userId: number;
     exerciseId: number;
-    exercise: Exercise;
+    deploymentId: number;
+    exercise?: Exercise;
     userAnswer: string;
     isCorrect: boolean;
-    submittedAd: Date;
-    result: string;
+    submittedAt: string;
+    result: string | null;
 }
 
 export interface CreateSolutionRequest {
     exerciseId: number;
+    deploymentId: number;
     userAnswer: string;
 }
 
@@ -23,7 +26,7 @@ export interface ExerciseStatsDto {
     totalAttempts: number;
     uniqueUsers: number;
     correctAnswers: number;
-    percentCorrect: number
+    percentCorrect: number;
 }
 
 export interface UserStatsDto {
@@ -32,37 +35,28 @@ export interface UserStatsDto {
     totalAttempts: number;
     uniqueExercises: number;
     correctAnswers: number;
-    percentCorrect: number
+    percentCorrect: number;
 }
 
 export const solutionsApi = createApi({
-    reducerPath: 'solutionsApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: 'http://localhost:5177/api',
-        prepareHeaders: (headers) => {
-            const token = localStorage.getItem("access_token");
-            if (token) {
-                headers.set("Authorization", `Bearer ${token}`);
-            }
-            return headers;
-        }
-    }),
+    reducerPath: "solutionsApi",
+    baseQuery,
     endpoints: (builder) => ({
         createSolution: builder.mutation<Solution, CreateSolutionRequest>({
-            query: (newSolution) => ({
-                url: 'Solutions/add',
-                method: 'POST',
-                body: newSolution,
-            })
+            query: (payload) => ({
+                url: "/Solutions/add",
+                method: "POST",
+                body: payload,
+            }),
         }),
         getExercisesStats: builder.query<ExerciseStatsDto[], void>({
-            query: () => 'Solutions/exercises-percent',
+            query: () => "/Solutions/exercises-percent",
         }),
         getUsersStats: builder.query<UserStatsDto[], void>({
-            query: () => 'Solutions/users-percent',
+            query: () => "/Solutions/users-percent",
         }),
     }),
-})
+});
 
 export const {
     useCreateSolutionMutation,

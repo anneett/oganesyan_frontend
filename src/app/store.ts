@@ -3,6 +3,7 @@ import { authApi } from "../features/auth/authApi.ts";
 import { exercisesApi } from "../features/exercises/exercisesApi.ts";
 import { usersApi } from "../features/users/usersApi.ts";
 import { solutionsApi } from "../features/solutions/solutionsApi.ts";
+import { databaseMetasApi } from "../features/databaseMetas/databaseMetasApi.ts";
 
 export const store = configureStore({
     reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
         [exercisesApi.reducerPath]: exercisesApi.reducer,
         [usersApi.reducerPath]: usersApi.reducer,
         [solutionsApi.reducerPath]: solutionsApi.reducer,
+        [databaseMetasApi.reducerPath]: databaseMetasApi.reducer,
     },
 
     middleware: (getDefaultMiddleware) =>
@@ -17,7 +19,8 @@ export const store = configureStore({
             authApi.middleware,
             exercisesApi.middleware,
             usersApi.middleware,
-            solutionsApi.middleware),
+            solutionsApi.middleware,
+            databaseMetasApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
