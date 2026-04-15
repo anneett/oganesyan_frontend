@@ -7,17 +7,20 @@ import { type Solution, useCreateSolutionMutation } from "../solutions/solutions
 type ExamResultMap = Record<number, Solution>;
 type ExamErrorMap = Record<number, string>;
 
+type SavedExamState = {
+    selectedDeploymentId: number;
+    durationMinutes: number;
+    startedAt: number;
+    answers: Record<number, string>;
+};
+
+const STORAGE_KEY = "exam_mode_state";
 const examDurations = [15, 30, 45];
 
 const formatSeconds = (seconds: number) => {
     const safeValue = Math.max(seconds, 0);
-    const minutes = Math.floor(safeValue / 60)
-        .toString()
-        .padStart(2, "0");
-    const restSeconds = Math.floor(safeValue % 60)
-        .toString()
-        .padStart(2, "0");
-
+    const minutes = Math.floor(safeValue / 60).toString().padStart(2, "0");
+    const restSeconds = Math.floor(safeValue % 60).toString().padStart(2, "0");
     return `${minutes}:${restSeconds}`;
 };
 
@@ -44,9 +47,9 @@ export const ExamMode = () => {
         () =>
             databaseMetas.flatMap((meta) =>
                 (meta.deployments ?? [])
-                    .filter((deployment) => deployment.isDeployed)
-                    .map((deployment) => ({
-                        ...deployment,
+                    .filter((d) => d.isDeployed)
+                    .map((d) => ({
+                        ...d,
                         logicalName: meta.logicalName,
                         description: meta.description,
                     })),
@@ -55,41 +58,75 @@ export const ExamMode = () => {
     );
 
     const selectedDeployment = useMemo(
-        () => availableDeployments.find((deployment) => deployment.id === selectedDeploymentId) ?? null,
+        () => availableDeployments.find((d) => d.id === selectedDeploymentId) ?? null,
         [availableDeployments, selectedDeploymentId],
     );
 
     const examExercises = useMemo(
         () =>
             selectedDeployment
-                ? exercises.filter((exercise) => exercise.databaseMetaId === selectedDeployment.databaseMetaId)
+                ? exercises.filter((e) => e.databaseMetaId === selectedDeployment.databaseMetaId)
                 : [],
         [exercises, selectedDeployment],
     );
 
-    const answeredCount = examExercises.filter((exercise) => answers[exercise.id]?.trim()).length;
+    const answeredCount = examExercises.filter((e) => answers[e.id]?.trim()).length;
     const checkedCount = Object.keys(results).length;
-    const correctCount = Object.values(results).filter((result) => result.isCorrect).length;
+    const correctCount = Object.values(results).filter((r) => r.isCorrect).length;
 
     const secondsLeft = useMemo(() => {
-        if (!startedAt || finishedAt) {
-            return durationMinutes * 60;
-        }
-
+        if (!startedAt || finishedAt) return durationMinutes * 60;
         const elapsedSeconds = Math.floor((now - startedAt) / 1000);
         return Math.max(durationMinutes * 60 - elapsedSeconds, 0);
     }, [durationMinutes, finishedAt, now, startedAt]);
 
-    const handleStartExam = () => {
-        const effectiveSelectedDeployment = selectedDeployment ?? availableDeployments[0] ?? null;
+    useEffect(() => {
+        if (startedAt && !finishedAt && selectedDeploymentId !== null) {
+            const state: SavedExamState = {
+                selectedDeploymentId,
+                durationMinutes,
+                startedAt,
+                answers,
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+    }, [answers, durationMinutes, finishedAt, selectedDeploymentId, startedAt]);
 
-        if (!effectiveSelectedDeployment || examExercises.length === 0) {
+    useEffect(() => {
+        if (isLoadingDatabases || isLoadingExercises) return;
+
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (!savedState) return;
+
+        try {
+            const parsed: SavedExamState = JSON.parse(savedState);
+            const elapsed = Math.floor((Date.now() - parsed.startedAt) / 1000);
+            const timeLeft = parsed.durationMinutes * 60 - elapsed;
+
+            if (timeLeft > 0) {
+                setSelectedDeploymentId(parsed.selectedDeploymentId);
+                setDurationMinutes(parsed.durationMinutes);
+                setStartedAt(parsed.startedAt);
+                setAnswers(parsed.answers);
+                setNow(Date.now());
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        } catch {
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }, [isLoadingDatabases, isLoadingExercises]);
+
+    const handleStartExam = () => {
+        const effectiveDeployment = selectedDeployment ?? availableDeployments[0] ?? null;
+
+        if (!effectiveDeployment || examExercises.length === 0) {
             setGeneralError("Для выбранного развертывания пока нет заданий.");
             return;
         }
 
         finishInProgress.current = false;
-        setSelectedDeploymentId(effectiveSelectedDeployment.id);
+        setSelectedDeploymentId(effectiveDeployment.id);
         setStartedAt(Date.now());
         setFinishedAt(null);
         setAnswers({});
@@ -101,6 +138,7 @@ export const ExamMode = () => {
 
     const handleResetExam = () => {
         finishInProgress.current = false;
+        localStorage.removeItem(STORAGE_KEY);
         setStartedAt(null);
         setFinishedAt(null);
         setAnswers({});
@@ -111,16 +149,11 @@ export const ExamMode = () => {
     };
 
     const handleAnswerChange = (exerciseId: number, value: string) => {
-        setAnswers((prev) => ({
-            ...prev,
-            [exerciseId]: value,
-        }));
+        setAnswers((prev) => ({ ...prev, [exerciseId]: value }));
     };
 
     const handleFinishExam = async () => {
-        if (!selectedDeployment || !startedAt || finishInProgress.current) {
-            return;
-        }
+        if (!selectedDeployment || !startedAt || finishInProgress.current) return;
 
         finishInProgress.current = true;
         setGeneralError(null);
@@ -130,10 +163,7 @@ export const ExamMode = () => {
 
         for (const exercise of examExercises) {
             const answer = answers[exercise.id]?.trim();
-
-            if (!answer || nextResults[exercise.id]) {
-                continue;
-            }
+            if (!answer || nextResults[exercise.id]) continue;
 
             try {
                 const result = await createSolution({
@@ -141,7 +171,6 @@ export const ExamMode = () => {
                     deploymentId: selectedDeployment.id,
                     userAnswer: answer,
                 }).unwrap();
-
                 nextResults[exercise.id] = result;
             } catch (error) {
                 nextErrors[exercise.id] = getApiErrorMessage(
@@ -154,6 +183,7 @@ export const ExamMode = () => {
         setResults(nextResults);
         setResultErrors(nextErrors);
         setFinishedAt(Date.now());
+        localStorage.removeItem(STORAGE_KEY);
 
         if (Object.keys(nextErrors).length > 0) {
             setGeneralError("Часть ответов не удалось проверить автоматически. Сообщения показаны у заданий.");
@@ -167,18 +197,16 @@ export const ExamMode = () => {
     });
 
     useEffect(() => {
-        if (!startedAt || finishedAt) {
-            return;
-        }
+        if (!startedAt || finishedAt) return;
 
         const intervalId = window.setInterval(() => {
             const currentNow = Date.now();
             setNow(currentNow);
 
-            const elapsedSeconds = Math.floor((currentNow - startedAt) / 1000);
-            const remainingSeconds = Math.max(durationMinutes * 60 - elapsedSeconds, 0);
+            const elapsed = Math.floor((currentNow - startedAt) / 1000);
+            const remaining = Math.max(durationMinutes * 60 - elapsed, 0);
 
-            if (remainingSeconds === 0 && !finishInProgress.current) {
+            if (remaining === 0 && !finishInProgress.current) {
                 autoFinishExam();
             }
         }, 1000);
