@@ -6,7 +6,6 @@ export interface User {
     login: string;
     isAdmin: boolean;
     inArchive: boolean;
-    isTelegramLinked: boolean;
 }
 
 export interface CreateUserRequest {
@@ -29,11 +28,6 @@ export interface UserSolution {
     isCorrect: boolean;
     submittedAt: string;
     result: string | null;
-}
-
-export interface TelegramLinkResponse {
-    deepLink: string;
-    expiresInMinutes: number;
 }
 
 export const usersApi = createApi({
@@ -88,20 +82,6 @@ export const usersApi = createApi({
             }),
             invalidatesTags: ['Users'],
         }),
-        generateTelegramLink: builder.mutation<TelegramLinkResponse, void>({
-            query: () => ({
-                url: '/Users/telegram/generate-link',
-                method: 'POST',
-            }),
-            invalidatesTags: ['Profile'],
-        }),
-        unlinkTelegram: builder.mutation<void, void>({
-            query: () => ({
-                url: '/Users/telegram/unlink',
-                method: 'DELETE',
-            }),
-            invalidatesTags: ['Profile'],
-        }),
     }),
 });
 
@@ -113,6 +93,4 @@ export const {
     useUpdateUserMutation,
     useChangeUserMutation,
     useArchiveUserMutation,
-    useGenerateTelegramLinkMutation,
-    useUnlinkTelegramMutation,
 } = usersApi;

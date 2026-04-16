@@ -18,6 +18,7 @@ export interface CreateSolutionRequest {
     exerciseId: number;
     deploymentId: number;
     userAnswer: string;
+    examId?: number;
 }
 
 export interface ExerciseStatsDto {

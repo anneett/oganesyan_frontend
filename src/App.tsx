@@ -13,7 +13,7 @@ import { Users } from "./features/users/Users.tsx";
 import { Solutions } from "./features/solutions/Solutions.tsx";
 import { RequireAdmin } from "./features/auth/RequireAdmin.tsx";
 import { DatabaseStudio } from "./features/databaseStudio/DatabaseStudio.tsx";
-import { ExamMode } from "./features/exam/ExamMode.tsx";
+import { ExamMode } from "./features/exams/ExamMode.tsx";
 
 const App = () => {
     return (
