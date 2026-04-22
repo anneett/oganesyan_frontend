@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
 import { useGetExercisesQuery } from "../exercises/exercisesApi";
-import { type ExamAttempt, useFinishExamMutation, useGetActiveExamsQuery, useGetMyResultsQuery, useStartExamMutation } from "./examsApi";
+import {
+    type ExamAttempt, useFinishExamMutation, useGetActiveExamsQuery, useGetMyResultsQuery,
+    useGetUserExamInfoQuery, useStartExamMutation
+} from "./examsApi";
 import { useCreateSolutionMutation } from "../solutions/solutionsApi";
+import {skipToken} from "@reduxjs/toolkit/query";
 
 const formatSeconds = (seconds: number) => {
     const safeValue = Math.max(seconds, 0);
@@ -56,8 +60,14 @@ export const ExamMode = () => {
 
     const { data: myResults, refetch: refetchResults } = useGetMyResultsQuery(
         currentAttempt?.examId ?? 0,
-        { skip: !currentAttempt?.finishedAt },
+        {
+            skip: !currentAttempt
+        },
     );
+
+    const { data: userExamInfo } = useGetUserExamInfoQuery(selectedExamId ?? skipToken, {
+        skip: !selectedExamId,
+    });
 
     const answeredCount = examExercises.filter((exercise) => answers[exercise.id]?.trim()).length;
 
@@ -393,6 +403,27 @@ export const ExamMode = () => {
                         </button>
                     </div>
                 </section>
+            )}
+
+            {selectedExam && userExamInfo && (
+                <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-sm text-text/50">Информация о попытках</p>
+                    <p className="mt-2 text-lg font-semibold text-text">
+                        {userExamInfo.maxAttempts === null
+                            ? "Неограниченно попыток"
+                            : `${userExamInfo.completedAttempts} из ${userExamInfo.maxAttempts} использовано`}
+                    </p>
+                    {userExamInfo.remainingAttempts !== null && (
+                        <p className="mt-1 text-sm text-text/55">
+                            Осталось попыток: {userExamInfo.remainingAttempts}
+                        </p>
+                    )}
+                    {userExamInfo.hasUnfinishedAttempt && (
+                        <p className="mt-2 rounded-xl border border-yellow-500/25 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
+                            У вас есть незавершенная попытка
+                        </p>
+                    )}
+                </div>
             )}
 
             {currentAttempt && (

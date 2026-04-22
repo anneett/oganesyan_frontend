@@ -25,6 +25,21 @@ export interface ExerciseStatsDto {
     percentCorrect: number;
 }
 
+export interface TestQueryRequest {
+    deploymentId: number;
+    query: string;
+}
+
+export interface QueryResult {
+    isCorrect: boolean;
+    message: string;
+    userRowCount: number;
+    userColumnCount: number;
+    columnNames: string[];
+    userRows: string[][];
+    errorDetails?: string;
+}
+
 export const exercisesApi = createApi({
     reducerPath: "exercisesApi",
     baseQuery,
@@ -48,6 +63,13 @@ export const exercisesApi = createApi({
         getExerciseStats: builder.query<ExerciseStatsDto, number>({
             query: (id) => `/Exercises/percent/${id}`,
         }),
+        testQuery: builder.mutation<QueryResult, TestQueryRequest>({
+            query: (payload) => ({
+                url: "/Exercises/test-query",
+                method: "POST",
+                body: payload,
+            }),
+        }),
     }),
 });
 
@@ -56,4 +78,5 @@ export const {
     useGetExerciseByIdQuery,
     useCreateExerciseMutation,
     useGetExerciseStatsQuery,
+    useTestQueryMutation,
 } = exercisesApi;

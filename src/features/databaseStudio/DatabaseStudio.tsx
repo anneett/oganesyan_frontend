@@ -14,13 +14,7 @@ import {
     useGetDbMetasQuery,
     useTestDbConnectionMutation,
 } from "../databaseMetas/databaseMetasApi";
-import {
-    type ExamCreateRequest,
-    useCreateExamMutation,
-    useGetActiveExamsQuery,
-    useGetExamAttemptsQuery,
-    useReleaseResultsMutation,
-} from "../exams/examsApi";
+import { type ExamCreateRequest, useCreateExamMutation, useGetActiveExamsQuery, useGetExamAttemptsQuery, useReleaseResultsMutation } from "../exams/examsApi";
 
 type StudioTab = "platforms" | "logical" | "deployments" | "exams";
 type NoticeTone = "success" | "error" | "info";
@@ -86,6 +80,7 @@ export const DatabaseStudio = () => {
         description: "",
         databaseMetaId: 0,
         durationMinutes: 30,
+        maxAttempts: 1,
         deploymentIds: [],
     });
 
@@ -271,6 +266,7 @@ export const DatabaseStudio = () => {
                 description: "",
                 databaseMetaId: 0,
                 durationMinutes: 30,
+                maxAttempts: 1,
                 deploymentIds: [],
             });
             await refetchExams();
@@ -884,6 +880,45 @@ export const DatabaseStudio = () => {
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-text/70">Количество попыток</label>
+                                    <div className="grid grid-cols-6 gap-2">
+                                        {[1, 2, 3, 5, 10].map((count) => {
+                                            const isActive = examForm.maxAttempts === count;
+                                            return (
+                                                <button
+                                                    key={count}
+                                                    type="button"
+                                                    onClick={() => setExamForm((prev) => ({ ...prev, maxAttempts: count }))}
+                                                    className={`rounded-2xl border px-3 py-3 text-center transition ${
+                                                        isActive
+                                                            ? "border-primary/40 bg-primary/12 text-primary"
+                                                            : "border-white/8 bg-black/15 text-text/70 hover:text-text"
+                                                    }`}
+                                                >
+                                                    <p className="text-xl font-semibold">{count}</p>
+                                                </button>
+                                            );
+                                        })}
+                                        <button
+                                            type="button"
+                                            onClick={() => setExamForm((prev) => ({ ...prev, maxAttempts: null }))}
+                                            className={`rounded-2xl border px-3 py-3 text-center transition ${
+                                                examForm.maxAttempts === null
+                                                    ? "border-primary/40 bg-primary/12 text-primary"
+                                                    : "border-white/8 bg-black/15 text-text/70 hover:text-text"
+                                            }`}
+                                        >
+                                            <p className="text-sm font-semibold">∞</p>
+                                        </button>
+                                    </div>
+                                    <p className="mt-2 text-sm text-text/45">
+                                        {examForm.maxAttempts === null
+                                            ? "Студент может проходить контрольную неограниченное количество раз"
+                                            : `Студент может пройти контрольную ${examForm.maxAttempts} раз(а)`}
+                                    </p>
                                 </div>
 
                                 <div>

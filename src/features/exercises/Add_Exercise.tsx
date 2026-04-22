@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
-import { useCreateExerciseMutation } from "./exercisesApi";
+import {useCreateExerciseMutation, useTestQueryMutation} from "./exercisesApi";
 
 const difficultyOptions = [
     { value: 0 as const, label: "Легкая", idle: "border-green-500/25 bg-green-500/10 text-green-300", active: "border-green-400 bg-green-500/20 text-green-200" },
@@ -18,6 +18,10 @@ export const Add_Exercise = () => {
     const [correctAnswer, setCorrectAnswer] = useState("");
     const [message, setMessage] = useState<string | null>(null);
     const [messageTone, setMessageTone] = useState<"success" | "error">("success");
+    const [testDeploymentId, setTestDeploymentId] = useState<number>(0);
+    const [isTestPanelOpen, setIsTestPanelOpen] = useState(false);
+
+    const [testQuery] = useTestQueryMutation();
 
     const { data: databaseMetas = [], isLoading: isLoadingMetas } = useGetDatabaseMetasQuery();
     const [createExercise, { isLoading }] = useCreateExerciseMutation();
@@ -47,6 +51,39 @@ export const Add_Exercise = () => {
     };
 
     const isFormValid = title.trim() && correctAnswer.trim() && effectiveDatabaseMetaId !== 0;
+
+    const selectedDbMeta = databaseMetas.find((m) => m.id === effectiveDatabaseMetaId);
+    const deployments = selectedDbMeta?.deployments?.filter((d) => d.isDeployed) ?? [];
+    const effectiveTestDeploymentId = testDeploymentId || deployments[0]?.id || 0;
+
+    const [testResult, setTestResult] = useState<any>(null);
+    const [isTestLoading, setIsTestLoading] = useState(false);
+
+    const handleTestQuery = async () => {
+        if (!correctAnswer.trim() || !effectiveTestDeploymentId) {
+            setMessageTone("error");
+            setMessage("Введите SQL-запрос и выберите развертывание для теста.");
+            return;
+        }
+
+        setIsTestLoading(true);
+        setTestResult(null);
+
+        try {
+            const result = await testQuery({
+                deploymentId: effectiveTestDeploymentId,
+                query: correctAnswer,
+            }).unwrap();
+
+            setTestResult(result);
+            setIsTestPanelOpen(true);
+        } catch (error) {
+            setMessageTone("error");
+            setMessage(getApiErrorMessage(error, "Не удалось выполнить тестовый запрос."));
+        } finally {
+            setIsTestLoading(false);
+        }
+    };
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -149,6 +186,37 @@ export const Add_Exercise = () => {
                                     placeholder="SELECT ..."
                                     className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 font-mono text-sm text-text outline-none transition focus:border-accent/50"
                                 />
+
+                                {deployments.length > 0 && (
+                                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-4">
+                                        <div className="mb-3 flex items-center justify-between">
+                                            <p className="text-sm font-medium text-text/70">
+                                                Протестировать запрос на реальной БД
+                                            </p>
+                                        </div>
+
+                                        <select
+                                            value={effectiveTestDeploymentId}
+                                            onChange={(event) => setTestDeploymentId(Number(event.target.value))}
+                                            className="mb-3 w-full rounded-xl border border-white/10 bg-[#0f1720] px-3 py-2 text-sm text-text outline-none"
+                                        >
+                                            {deployments.map((deployment) => (
+                                                <option key={deployment.id} value={deployment.id}>
+                                                    {deployment.dbMeta?.dbType} · {deployment.physicaDatabaseName}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleTestQuery}
+                                            disabled={isTestLoading || !correctAnswer.trim()}
+                                            className="w-full rounded-xl border border-secondary/25 bg-secondary/10 px-4 py-2 text-sm font-medium text-secondary transition hover:bg-secondary/15 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            {isTestLoading ? "Выполнение..." : "▶ Выполнить запрос"}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-col gap-3 sm:flex-row">
@@ -189,6 +257,75 @@ export const Add_Exercise = () => {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {testResult && isTestPanelOpen && (
+                        <div className={`rounded-[2rem] border p-6 shadow-xl ${
+                            testResult.isCorrect
+                                ? "border-green-500/25 bg-green-500/10"
+                                : "border-red-500/25 bg-red-500/10"
+                        }`}>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h3 className={`text-xl font-semibold ${
+                                    testResult.isCorrect ? "text-green-200" : "text-red-200"
+                                }`}>
+                                    Результат выполнения
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTestPanelOpen(false)}
+                                    className="rounded-xl border border-white/10 bg-black/15 px-3 py-1 text-sm text-text transition hover:bg-black/20"
+                                >
+                                    Закрыть
+                                </button>
+                            </div>
+
+                            <p className="mb-4 text-sm text-text/70">{testResult.message}</p>
+
+                            {testResult.errorDetails && (
+                                <div className="mb-4 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                                    {testResult.errorDetails}
+                                </div>
+                            )}
+
+                            {testResult.isCorrect && testResult.userRows.length > 0 && (
+                                <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#0f1720]">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                        <tr className="border-b border-white/10">
+                                            {testResult.columnNames.map((col: string, idx: number) => (
+                                                <th key={idx} className="px-3 py-2 text-left font-medium text-text/70">
+                                                    {col}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {testResult.userRows.slice(0, 10).map((row: string[], rowIdx: number) => (
+                                            <tr key={rowIdx} className="border-b border-white/5">
+                                                {row.map((cell: string, cellIdx: number) => (
+                                                    <td key={cellIdx} className="px-3 py-2 text-text/80">
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                    {testResult.userRowCount > 10 && (
+                                        <div className="border-t border-white/10 px-3 py-2 text-center text-sm text-text/50">
+                                            ... и еще {testResult.userRowCount - 10} строк
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {testResult.isCorrect && testResult.userRows.length === 0 && (
+                                <div className="rounded-xl border border-white/10 bg-black/15 px-4 py-6 text-center text-sm text-text/55">
+                                    Запрос выполнен успешно, но не вернул строк (пустой результат)
+                                </div>
+                            )}
                         </div>
                     )}
                 </aside>

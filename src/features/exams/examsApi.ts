@@ -12,6 +12,7 @@ export interface Exam {
     title: string;
     description: string;
     durationMinutes: number;
+    maxAttempts: number | null;
     isActive: boolean;
     isResultsReleased: boolean;
     logicalDbName: string;
@@ -24,7 +25,17 @@ export interface ExamCreateRequest {
     description: string;
     databaseMetaId: number;
     durationMinutes: number;
+    maxAttempts: number | null;
     deploymentIds: number[];
+}
+
+export interface UserExamInfo {
+    examId: number;
+    maxAttempts: number | null;
+    completedAttempts: number;
+    remainingAttempts: number | null;
+    hasUnfinishedAttempt: boolean;
+    canStart: boolean;
 }
 
 export interface ExamStartRequest {
@@ -116,6 +127,10 @@ export const examsApi = createApi({
             query: (examId) => `/Exams/${examId}/attempts`,
             providesTags: ["ExamAttempts"],
         }),
+        getUserExamInfo: builder.query<UserExamInfo, number>({
+            query: (examId) => `/Exams/${examId}/user-info`,
+            providesTags: ["ExamAttempts"],
+        }),
     }),
 });
 
@@ -127,4 +142,5 @@ export const {
     useGetMyResultsQuery,
     useReleaseResultsMutation,
     useGetExamAttemptsQuery,
+    useGetUserExamInfoQuery,
 } = examsApi;
