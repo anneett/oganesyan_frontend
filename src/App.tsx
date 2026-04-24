@@ -14,6 +14,7 @@ import { Solutions } from "./features/solutions/Solutions.tsx";
 import { RequireAdmin } from "./features/auth/RequireAdmin.tsx";
 import { DatabaseStudio } from "./features/databaseStudio/DatabaseStudio.tsx";
 import { ExamMode } from "./features/exams/ExamMode.tsx";
+import {ExamResults} from "./features/exams/ExamResults.tsx";
 
 const App = () => {
     return (
@@ -28,6 +29,7 @@ const App = () => {
                             <Route path="/" element={<Navigate to="/login" />} />
                             <Route path="/exercises" element={<RequireAuth><Exercises /></RequireAuth>} />
                             <Route path="/exam" element={<RequireAuth><ExamMode /></RequireAuth>} />
+                            <Route path="/exam/:examId/results" element={<RequireAuth><ExamResults /></RequireAuth>} />
                             <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
                             <Route path="/exercise/:id" element={<RequireAuth><Exercise /></RequireAuth>} />
 

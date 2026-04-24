@@ -30,6 +30,7 @@ export interface ExamCreateRequest {
 }
 
 export interface UserExamInfo {
+    usedAttempts: number;
     examId: number;
     maxAttempts: number | null;
     completedAttempts: number;
@@ -67,6 +68,43 @@ export interface ExamResultsResponse {
     isResultsReleased: boolean;
     message?: string;
     submittedCount?: number;
+    startedAt?: string;
+    finishedAt?: string | null;
+    solutions?: Array<{
+        exerciseId: number;
+        exerciseTitle: string;
+        userAnswer: string;
+        isCorrect: boolean;
+        result: string | null;
+    }>;
+    correctAnswers?: number;
+    totalExercises?: number;
+}
+
+export interface AttemptSummary {
+    attemptId: number;
+    startedAt: string;
+    finishedAt: string | null;
+    correctAnswers: number;
+    totalAnswers: number;
+    percentage: number;
+}
+
+export interface UserAttemptsResponse {
+    examId: number;
+    examTitle: string;
+    isResultsReleased: boolean;
+    maxAttempts: number | null;
+    usedAttempts: number;
+    attempts: AttemptSummary[];
+    bestAttemptId: number | null;
+    message?: string;
+}
+
+export interface AttemptDetailsResponse {
+    isResultsReleased: boolean;
+    message?: string;
+    attemptId?: number;
     startedAt?: string;
     finishedAt?: string | null;
     solutions?: Array<{
@@ -131,6 +169,14 @@ export const examsApi = createApi({
             query: (examId) => `/Exams/${examId}/user-info`,
             providesTags: ["ExamAttempts"],
         }),
+        getUserAttempts: builder.query<UserAttemptsResponse, number>({
+            query: (examId) => `/Exams/${examId}/my-attempts`,
+            providesTags: ["ExamResults"],
+        }),
+        getAttemptDetails: builder.query<AttemptDetailsResponse, number>({
+            query: (attemptId) => `/Exams/attempt/${attemptId}/details`,
+            providesTags: ["ExamResults"],
+        }),
     }),
 });
 
@@ -143,4 +189,6 @@ export const {
     useReleaseResultsMutation,
     useGetExamAttemptsQuery,
     useGetUserExamInfoQuery,
+    useGetUserAttemptsQuery,
+    useGetAttemptDetailsQuery,
 } = examsApi;

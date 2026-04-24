@@ -213,7 +213,7 @@ export const Add_Exercise = () => {
                                             disabled={isTestLoading || !correctAnswer.trim()}
                                             className="w-full rounded-xl border border-secondary/25 bg-secondary/10 px-4 py-2 text-sm font-medium text-secondary transition hover:bg-secondary/15 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
-                                            {isTestLoading ? "Выполнение..." : "▶ Выполнить запрос"}
+                                            {isTestLoading ? "Выполнение..." : "Выполнить запрос"}
                                         </button>
                                     </div>
                                 )}
