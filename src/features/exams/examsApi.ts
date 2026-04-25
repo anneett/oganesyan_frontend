@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "../../app/baseQuery";
+import type { Exercise } from "../exercises/exercisesApi.ts";
 
 export interface DeploymentInfoDto {
     id: number;
@@ -18,6 +19,10 @@ export interface Exam {
     logicalDbName: string;
     databaseMetaId: number;
     availablePlatforms: DeploymentInfoDto[];
+    easyCount: number;
+    mediumCount: number;
+    hardCount: number;
+    totalExercises: number;
 }
 
 export interface ExamCreateRequest {
@@ -27,6 +32,9 @@ export interface ExamCreateRequest {
     durationMinutes: number;
     maxAttempts: number | null;
     deploymentIds: number[];
+    easyCount: number;
+    mediumCount: number;
+    hardCount: number;
 }
 
 export interface UserExamInfo {
@@ -177,6 +185,10 @@ export const examsApi = createApi({
             query: (attemptId) => `/Exams/attempt/${attemptId}/details`,
             providesTags: ["ExamResults"],
         }),
+        getAttemptExercises: builder.query<Exercise[], number>({
+            query: (attemptId) => `/Exams/attempt/${attemptId}/exercises`,
+            providesTags: ["ExamAttempts"],
+        }),
     }),
 });
 
@@ -191,4 +203,5 @@ export const {
     useGetUserExamInfoQuery,
     useGetUserAttemptsQuery,
     useGetAttemptDetailsQuery,
+    useGetAttemptExercisesQuery,
 } = examsApi;

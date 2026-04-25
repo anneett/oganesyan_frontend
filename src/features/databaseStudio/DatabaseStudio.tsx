@@ -15,6 +15,7 @@ import {
     useTestDbConnectionMutation,
 } from "../databaseMetas/databaseMetasApi";
 import { type ExamCreateRequest, useCreateExamMutation, useGetActiveExamsQuery, useGetExamAttemptsQuery, useReleaseResultsMutation } from "../exams/examsApi";
+import { useGetExercisesQuery } from "../exercises/exercisesApi";
 
 type StudioTab = "platforms" | "logical" | "deployments" | "exams";
 type NoticeTone = "success" | "error" | "info";
@@ -82,6 +83,9 @@ export const DatabaseStudio = () => {
         durationMinutes: 30,
         maxAttempts: 1,
         deploymentIds: [],
+        easyCount: 0,
+        mediumCount: 0,
+        hardCount: 0,
     });
 
     const [dbNotice, setDbNotice] = useState<Notice | null>(null);
@@ -92,6 +96,7 @@ export const DatabaseStudio = () => {
     const { data: dbMetas = [], isLoading: dbMetasLoading, refetch: refetchDbMetas } = useGetDbMetasQuery();
     const { data: databaseMetas = [], isLoading: databaseMetasLoading, refetch: refetchDatabaseMetas } = useGetDatabaseMetasQuery();
     const { data: activeExams = [], isLoading: examsLoading, refetch: refetchExams } = useGetActiveExamsQuery();
+    const { data: exercises = [] } = useGetExercisesQuery();
 
     const effectiveSelectedMetaId = selectedMetaId ?? databaseMetas[0]?.id ?? null;
     const effectiveDbMetaId = deploymentForm.dbMetaId || dbMetas[0]?.id || 0;
@@ -135,6 +140,54 @@ export const DatabaseStudio = () => {
         const meta = databaseMetas.find((m) => m.id === examForm.databaseMetaId);
         return meta?.deployments?.filter((d) => d.isDeployed) ?? [];
     }, [examForm.databaseMetaId, databaseMetas]);
+
+    const availableExerciseCounts = useMemo(() => {
+        if (!examForm.databaseMetaId) {
+            return { easy: 0, medium: 0, hard: 0 };
+        }
+
+        return exercises.reduce(
+            (acc, exercise) => {
+                if (exercise.databaseMetaId !== examForm.databaseMetaId) {
+                    return acc;
+                }
+
+                if (exercise.difficulty === 0) acc.easy += 1;
+                if (exercise.difficulty === 1) acc.medium += 1;
+                if (exercise.difficulty === 2) acc.hard += 1;
+
+                return acc;
+            },
+            { easy: 0, medium: 0, hard: 0 },
+        );
+    }, [examForm.databaseMetaId, exercises]);
+
+    const examAvailabilityErrors = useMemo(() => {
+        const errors: string[] = [];
+
+        if (examForm.easyCount > availableExerciseCounts.easy) {
+            errors.push(`Легких заданий доступно ${availableExerciseCounts.easy}, запрошено ${examForm.easyCount}.`);
+        }
+
+        if (examForm.mediumCount > availableExerciseCounts.medium) {
+            errors.push(`Средних заданий доступно ${availableExerciseCounts.medium}, запрошено ${examForm.mediumCount}.`);
+        }
+
+        if (examForm.hardCount > availableExerciseCounts.hard) {
+            errors.push(`Сложных заданий доступно ${availableExerciseCounts.hard}, запрошено ${examForm.hardCount}.`);
+        }
+
+        return errors;
+    }, [
+        availableExerciseCounts.easy,
+        availableExerciseCounts.hard,
+        availableExerciseCounts.medium,
+        examForm.easyCount,
+        examForm.hardCount,
+        examForm.mediumCount,
+    ]);
+
+    const hasExamAvailabilityError = examAvailabilityErrors.length > 0;
 
     const handleTestConnection = async () => {
         try {
@@ -255,6 +308,14 @@ export const DatabaseStudio = () => {
             return;
         }
 
+        if (hasExamAvailabilityError) {
+            setExamNotice({
+                tone: "error",
+                text: examAvailabilityErrors.join(" "),
+            });
+            return;
+        }
+
         try {
             const result = await createExam(examForm).unwrap();
             setExamNotice({
@@ -268,6 +329,9 @@ export const DatabaseStudio = () => {
                 durationMinutes: 30,
                 maxAttempts: 1,
                 deploymentIds: [],
+                easyCount: 0,
+                mediumCount: 0,
+                hardCount: 0,
             });
             await refetchExams();
         } catch (error) {
@@ -949,6 +1013,56 @@ export const DatabaseStudio = () => {
 
                                 {examForm.databaseMetaId > 0 && (
                                     <div>
+                                        <label className="mb-2 block text-sm font-medium text-text/70">
+                                            Количество заданий по сложности
+                                        </label>
+
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="mb-1 block text-xs text-text/50">Легких</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max={Math.max(50, availableExerciseCounts.easy)}
+                                                    value={examForm.easyCount}
+                                                    onChange={(e) => setExamForm(prev => ({ ...prev, easyCount: Number(e.target.value) }))}
+                                                    className="w-full rounded-xl border border-white/10 bg-[#0f1720] px-3 py-2 text-text outline-none transition focus:border-accent/50"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="mb-1 block text-xs text-text/50">Средних</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max={Math.max(50, availableExerciseCounts.medium)}
+                                                    value={examForm.mediumCount}
+                                                    onChange={(e) => setExamForm(prev => ({ ...prev, mediumCount: Number(e.target.value) }))}
+                                                    className="w-full rounded-xl border border-white/10 bg-[#0f1720] px-3 py-2 text-text outline-none transition focus:border-accent/50"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="mb-1 block text-xs text-text/50">Сложных</label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max={Math.max(50, availableExerciseCounts.hard)}
+                                                    value={examForm.hardCount}
+                                                    onChange={(e) => setExamForm(prev => ({ ...prev, hardCount: Number(e.target.value) }))}
+                                                    className="w-full rounded-xl border border-white/10 bg-[#0f1720] px-3 py-2 text-text outline-none transition focus:border-accent/50"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <p className="mt-2 text-sm text-text/45">
+                                            Всего заданий: {examForm.easyCount + examForm.mediumCount + examForm.hardCount}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {examForm.databaseMetaId > 0 && (
+                                    <div>
                                         <label className="mb-3 block text-sm font-medium text-text/70">
                                             Доступные СУБД (выберите минимум одну)
                                         </label>
@@ -993,13 +1107,26 @@ export const DatabaseStudio = () => {
                                     </div>
                                 )}
 
+                                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-text/65">
+                                    <p>Доступно по выбранной БД: легких {availableExerciseCounts.easy}, средних {availableExerciseCounts.medium}, сложных {availableExerciseCounts.hard}.</p>
+                                    {hasExamAvailabilityError && (
+                                        <div className="mt-3 space-y-1 text-red-300">
+                                            {examAvailabilityErrors.map((message) => (
+                                                <p key={message}>{message}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <button
                                     type="submit"
                                     disabled={
                                         isCreatingExam ||
                                         !examForm.title.trim() ||
                                         !examForm.databaseMetaId ||
-                                        examForm.deploymentIds.length === 0
+                                        examForm.deploymentIds.length === 0 ||
+                                        (examForm.easyCount + examForm.mediumCount + examForm.hardCount) === 0 ||
+                                        hasExamAvailabilityError
                                     }
                                     className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-semibold text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
                                 >
