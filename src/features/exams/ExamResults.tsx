@@ -54,6 +54,7 @@ export const ExamResults = () => {
     const selectedAttemptSolved = attemptDetails?.solutions?.length ?? 0;
     const selectedAttemptCorrect = attemptDetails?.correctAnswers ?? 0;
     const selectedAttemptUnsolved = Math.max(selectedAttemptTotalExercises - selectedAttemptSolved, 0);
+    const isResultsReleased = Boolean(attemptsData?.isResultsReleased);
 
     if (isLoadingAttempts) {
         return (
@@ -90,9 +91,9 @@ export const ExamResults = () => {
                         <p className="mb-3 text-xs uppercase tracking-[0.28em] text-text/40">Результаты контрольной</p>
                         <h1 className="text-3xl font-semibold text-text sm:text-4xl">{attemptsData.examTitle}</h1>
                         <p className="mt-4 max-w-3xl text-base leading-7 text-text/65">
-                            {attemptsData.isResultsReleased
+                            {isResultsReleased
                                 ? "Результаты опубликованы. Можно открыть любую попытку и посмотреть подробности по каждому заданию."
-                                : "Пока идет проверка преподавателем. Список попыток уже доступен, а подробные результаты откроются позже."}
+                                : "Пока идет проверка преподавателем. Список ваших завершенных попыток уже доступен, но оценки и сравнение результатов пока скрыты."}
                         </p>
                     </div>
 
@@ -104,7 +105,7 @@ export const ExamResults = () => {
                                 {attemptsData.maxAttempts !== null && ` / ${attemptsData.maxAttempts}`}
                             </p>
                         </div>
-                        {attemptsData.bestAttemptId && (
+                        {isResultsReleased && attemptsData.bestAttemptId && (
                             <div className="rounded-3xl border border-white/8 bg-black/18 p-5">
                                 <p className="text-sm text-text/50">Лучший результат</p>
                                 <p className="mt-2 text-3xl font-semibold text-accent">
@@ -134,13 +135,17 @@ export const ExamResults = () => {
                     <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         <div className="mb-6">
                             <h2 className="text-2xl font-semibold text-text">Ваши попытки</h2>
-                            <p className="mt-1 text-sm text-text/55">Выберите попытку для просмотра деталей</p>
+                            <p className="mt-1 text-sm text-text/55">
+                                {isResultsReleased
+                                    ? "Выберите попытку для просмотра деталей"
+                                    : "Результаты пока скрыты, но вы можете увидеть список своих завершенных попыток."}
+                            </p>
                         </div>
 
                         <div className="space-y-3">
                             {attemptsData.attempts.map((attempt, index) => {
                                 const isSelected = attempt.attemptId === selectedAttemptId;
-                                const isBest = attempt.attemptId === attemptsData.bestAttemptId;
+                                const isBest = isResultsReleased && attempt.attemptId === attemptsData.bestAttemptId;
 
                                 return (
                                     <button
@@ -177,13 +182,15 @@ export const ExamResults = () => {
                                                 )}
                                             </div>
 
-                                            <div className="rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 text-center">
-                                                <p className="text-xs text-text/50">Результат</p>
-                                                <p className="mt-1 text-2xl font-semibold text-text">{attempt.percentage}%</p>
-                                                <p className="mt-1 text-xs text-text/45">
-                                                    {attempt.correctAnswers} / {attempt.totalAnswers}
-                                                </p>
-                                            </div>
+                                            {isResultsReleased && (
+                                                <div className="rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 text-center">
+                                                    <p className="text-xs text-text/50">Результат</p>
+                                                    <p className="mt-1 text-2xl font-semibold text-text">{attempt.percentage}%</p>
+                                                    <p className="mt-1 text-xs text-text/45">
+                                                        {attempt.correctAnswers} / {attempt.totalAnswers}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </button>
                                 );
@@ -201,7 +208,11 @@ export const ExamResults = () => {
                     <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         {!selectedAttemptId ? (
                             <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-20 text-center">
-                                <p className="text-text/50">Выберите попытку слева, чтобы посмотреть решения и статистику.</p>
+                                <p className="text-text/50">
+                                    {isResultsReleased
+                                        ? "Выберите попытку слева, чтобы посмотреть решения и статистику."
+                                        : "Выберите попытку слева. Пока идет проверка, здесь будет только статус публикации результатов."}
+                                </p>
                             </div>
                         ) : !attemptDetails ? (
                             <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-20 text-center">

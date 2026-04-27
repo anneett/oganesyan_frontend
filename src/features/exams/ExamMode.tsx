@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { API_ORIGIN } from "../../app/baseQuery";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
 import { useGetDatabaseMetaByIdQuery } from "../databaseMetas/databaseMetasApi";
+import type { Exercise } from "../exercises/exercisesApi";
 import {
+    type Exam,
     type ExamAttempt,
     useFinishExamMutation,
     useGetActiveExamsQuery,
@@ -51,6 +53,10 @@ export const ExamMode = () => {
     const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
 
     const finishInProgress = useRef(false);
+    const answersRef = useRef<Record<number, string>>({});
+    const attemptRef = useRef<ExamAttempt | null>(null);
+    const selectedExamRef = useRef<Exam | null>(null);
+    const examExercisesRef = useRef<Exercise[]>([]);
 
     const { data: activeExams = [], isLoading: isLoadingExams } = useGetActiveExamsQuery();
     const [startExam, { isLoading: isStarting }] = useStartExamMutation();
@@ -61,6 +67,8 @@ export const ExamMode = () => {
         () => activeExams.find((exam) => exam.id === selectedExamId) ?? null,
         [activeExams, selectedExamId],
     );
+
+    const isExamReleased = Boolean(selectedExam?.isResultsReleased);
 
     const { data: selectedDbMeta } = useGetDatabaseMetaByIdQuery(selectedExam?.databaseMetaId ?? skipToken);
     const erdImageUrl = getAssetUrl(selectedDbMeta?.erdImagePath);
@@ -101,6 +109,22 @@ export const ExamMode = () => {
 
         return Math.max(totalSeconds - elapsedSeconds, 0);
     }, [currentAttempt, now, selectedExam]);
+
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
+
+    useEffect(() => {
+        attemptRef.current = currentAttempt;
+    }, [currentAttempt]);
+
+    useEffect(() => {
+        selectedExamRef.current = selectedExam;
+    }, [selectedExam]);
+
+    useEffect(() => {
+        examExercisesRef.current = examExercises;
+    }, [examExercises]);
 
     useEffect(() => {
         if (isLoadingExams) return;
@@ -149,6 +173,54 @@ export const ExamMode = () => {
         }
     }, [answers, currentAttempt, selectedExam]);
 
+    const handleFinishExam = useCallback(async () => {
+        const attempt = attemptRef.current;
+        const exam = selectedExamRef.current;
+        const latestAnswers = answersRef.current;
+        const latestExercises = examExercisesRef.current;
+
+        if (!attempt || !exam || finishInProgress.current || isSubmittingAnswers) return;
+
+        finishInProgress.current = true;
+        setIsSubmittingAnswers(true);
+        setGeneralError(null);
+
+        const errors: string[] = [];
+
+        for (const exercise of latestExercises) {
+            const answer = latestAnswers[exercise.id]?.trim();
+            if (!answer) continue;
+
+            try {
+                await createSolution({
+                    exerciseId: exercise.id,
+                    deploymentId: attempt.selectedDeploymentId,
+                    userAnswer: answer,
+                    examId: attempt.examId,
+                }).unwrap();
+            } catch (requestError) {
+                errors.push(
+                    `Задание "${exercise.title}": ${getApiErrorMessage(requestError, "Не удалось сохранить ответ")}`,
+                );
+            }
+        }
+
+        try {
+            await finishExam(attempt.examId).unwrap();
+            setCurrentAttempt((prev) => (prev ? { ...prev, finishedAt: new Date().toISOString() } : null));
+            localStorage.removeItem(STORAGE_KEY);
+
+            if (errors.length > 0) {
+                setGeneralError(`Контрольная завершена, но не все ответы удалось сохранить:\n${errors.join("\n")}`);
+            }
+        } catch (requestError) {
+            setGeneralError(getApiErrorMessage(requestError, "Не удалось завершить контрольную."));
+        } finally {
+            setIsSubmittingAnswers(false);
+            finishInProgress.current = false;
+        }
+    }, [createSolution, finishExam, isSubmittingAnswers]);
+
     useEffect(() => {
         if (!currentAttempt || currentAttempt.finishedAt) return;
 
@@ -167,11 +239,16 @@ export const ExamMode = () => {
         }, 1000);
 
         return () => window.clearInterval(intervalId);
-    }, [currentAttempt, selectedExam]);
+    }, [currentAttempt, handleFinishExam, selectedExam]);
 
     const handleStartExam = async () => {
         if (!selectedExamId || !selectedDeploymentId) {
             setGeneralError("Выберите СУБД для прохождения контрольной.");
+            return;
+        }
+
+        if (selectedExam?.isResultsReleased) {
+            setGeneralError("Результаты этой контрольной уже опубликованы. Новые попытки недоступны.");
             return;
         }
 
@@ -188,49 +265,6 @@ export const ExamMode = () => {
             setNow(Date.now());
         } catch (requestError) {
             setGeneralError(getApiErrorMessage(requestError, "Не удалось начать контрольную."));
-        }
-    };
-
-    const handleFinishExam = async () => {
-        if (!currentAttempt || !selectedExam || finishInProgress.current || isSubmittingAnswers) return;
-
-        finishInProgress.current = true;
-        setIsSubmittingAnswers(true);
-        setGeneralError(null);
-
-        const errors: string[] = [];
-
-        for (const exercise of examExercises) {
-            const answer = answers[exercise.id]?.trim();
-            if (!answer) continue;
-
-            try {
-                await createSolution({
-                    exerciseId: exercise.id,
-                    deploymentId: currentAttempt.selectedDeploymentId,
-                    userAnswer: answer,
-                    examId: currentAttempt.examId,
-                }).unwrap();
-            } catch (requestError) {
-                errors.push(
-                    `Задание "${exercise.title}": ${getApiErrorMessage(requestError, "Не удалось сохранить ответ")}`,
-                );
-            }
-        }
-
-        try {
-            await finishExam(currentAttempt.examId).unwrap();
-            setCurrentAttempt((prev) => (prev ? { ...prev, finishedAt: new Date().toISOString() } : null));
-            localStorage.removeItem(STORAGE_KEY);
-
-            if (errors.length > 0) {
-                setGeneralError(`Контрольная завершена, но не все ответы удалось сохранить:\n${errors.join("\n")}`);
-            }
-        } catch (requestError) {
-            setGeneralError(getApiErrorMessage(requestError, "Не удалось завершить контрольную."));
-        } finally {
-            setIsSubmittingAnswers(false);
-            finishInProgress.current = false;
         }
     };
 
@@ -386,91 +420,124 @@ export const ExamMode = () => {
                             <div className="mb-6">
                                 <p className="text-sm font-medium text-secondary">Шаг 2</p>
                                 <h2 className="mt-1 text-2xl font-semibold text-text">
-                                    {selectedExam ? "Выберите СУБД" : "Детали контрольной"}
+                                    {isExamReleased ? "Результаты опубликованы" : "Выберите СУБД"}
                                 </h2>
+                                <p className="mt-2 text-sm leading-6 text-text/55">
+                                    {isExamReleased
+                                        ? "Контрольная работа завершена. Новые попытки недоступны."
+                                        : "Преподаватель разрешил использовать следующие платформы для этой контрольной."}
+                                </p>
                             </div>
 
                             {selectedExam ? (
-                                <>
-                                    <div className="mb-5 rounded-3xl border border-white/8 bg-black/15 p-4">
-                                        <p className="text-sm text-text/50">Логическая БД</p>
-                                        <p className="mt-1 text-lg font-semibold text-text">{selectedExam.logicalDbName}</p>
-                                        <p className="mt-2 text-sm text-text/55">
-                                            Легких: {selectedExam.easyCount}, средних: {selectedExam.mediumCount}, сложных: {selectedExam.hardCount}.
-                                        </p>
-                                    </div>
-
-                                    {userExamInfo && (
-                                        <div className="mb-5 rounded-3xl border border-white/8 bg-black/15 p-4">
-                                            <p className="text-sm text-text/50">Попытки</p>
-                                            <p className="mt-1 text-lg font-semibold text-text">
-                                                {userExamInfo.maxAttempts === null
-                                                    ? "Количество попыток не ограничено"
-                                                    : `${userExamInfo.completedAttempts} из ${userExamInfo.maxAttempts} использовано`}
+                                isExamReleased ? (
+                                    <div className="space-y-4">
+                                        <div className="rounded-3xl border border-green-500/25 bg-green-500/10 p-6 text-center">
+                                            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border border-green-500/30 bg-green-500/20">
+                                                <svg className="h-8 w-8 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-xl font-semibold text-green-200">Контрольная завершена</h3>
+                                            <p className="mt-2 text-sm text-green-100/80">
+                                                Преподаватель опубликовал результаты.
+                                                {userExamInfo?.usedAttempts
+                                                    ? " Вы можете просмотреть свои попытки."
+                                                    : " Попыток по этой контрольной у вас нет."}
                                             </p>
-                                            {userExamInfo.remainingAttempts !== null && (
-                                                <p className="mt-1 text-sm text-text/55">
-                                                    Осталось попыток: {userExamInfo.remainingAttempts}
-                                                </p>
-                                            )}
-                                            {userExamInfo.hasUnfinishedAttempt && (
-                                                <p className="mt-3 rounded-xl border border-yellow-500/25 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
-                                                    У вас есть незавершенная попытка. Можно продолжить ее на выбранной СУБД.
-                                                </p>
-                                            )}
-                                            {userExamInfo.usedAttempts > 0 && (
-                                                <Link
-                                                    to={`/exam/${selectedExam.id}/results`}
-                                                    className="mt-3 block rounded-xl border border-accent/25 bg-accent/10 px-4 py-2 text-center text-sm font-medium text-accent transition hover:bg-accent/15"
-                                                >
-                                                    Посмотреть попытки ({userExamInfo.usedAttempts})
-                                                </Link>
-                                            )}
                                         </div>
-                                    )}
 
-                                    <div className="mb-5 space-y-3">
-                                        {selectedExam.availablePlatforms.map((platform) => {
-                                            const isActive = platform.id === selectedDeploymentId;
-
-                                            return (
-                                                <button
-                                                    key={platform.id}
-                                                    type="button"
-                                                    onClick={() => setSelectedDeploymentId(platform.id)}
-                                                    className={`w-full rounded-3xl border p-4 text-left transition ${
-                                                        isActive
-                                                            ? "border-primary/40 bg-primary/12"
-                                                            : "border-white/8 bg-black/15 hover:border-white/12 hover:bg-black/20"
-                                                    }`}
-                                                >
-                                                    <p className={`text-lg font-semibold ${isActive ? "text-primary" : "text-text"}`}>
-                                                        {platform.dbType}
-                                                    </p>
-                                                    <p className="mt-1 text-sm text-text/55">{platform.provider}</p>
-                                                </button>
-                                            );
-                                        })}
+                                        {userExamInfo?.usedAttempts ? (
+                                            <Link
+                                                to={`/exam/${selectedExam.id}/results`}
+                                                className="block rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3 text-center text-sm font-medium text-accent transition hover:bg-accent/15"
+                                            >
+                                                Посмотреть попытки ({userExamInfo.usedAttempts})
+                                            </Link>
+                                        ) : null}
                                     </div>
+                                ) : (
+                                    <>
+                                        <div className="mb-5 rounded-3xl border border-white/8 bg-black/15 p-4">
+                                            <p className="text-sm text-text/50">Логическая БД</p>
+                                            <p className="mt-1 text-lg font-semibold text-text">{selectedExam.logicalDbName}</p>
+                                            <p className="mt-2 text-sm text-text/55">
+                                                Легких: {selectedExam.easyCount}, средних: {selectedExam.mediumCount}, сложных: {selectedExam.hardCount}.
+                                            </p>
+                                        </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => void handleStartExam()}
-                                        disabled={
-                                            !selectedExamId ||
-                                            !selectedDeploymentId ||
-                                            isStarting ||
-                                            Boolean(userExamInfo && !userExamInfo.canStart)
-                                        }
-                                        className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-semibold text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
-                                    >
-                                        {isStarting
-                                            ? "Начинаем..."
-                                            : userExamInfo?.hasUnfinishedAttempt
-                                                ? "Продолжить попытку"
-                                                : "Начать контрольную"}
-                                    </button>
-                                </>
+                                        {userExamInfo && (
+                                            <div className="mb-5 rounded-3xl border border-white/8 bg-black/15 p-4">
+                                                <p className="text-sm text-text/50">Попытки</p>
+                                                <p className="mt-1 text-lg font-semibold text-text">
+                                                    {userExamInfo.maxAttempts === null
+                                                        ? "Количество попыток не ограничено"
+                                                        : `${userExamInfo.completedAttempts} из ${userExamInfo.maxAttempts} использовано`}
+                                                </p>
+                                                {userExamInfo.remainingAttempts !== null && (
+                                                    <p className="mt-1 text-sm text-text/55">
+                                                        Осталось попыток: {userExamInfo.remainingAttempts}
+                                                    </p>
+                                                )}
+                                                {userExamInfo.hasUnfinishedAttempt && (
+                                                    <p className="mt-3 rounded-xl border border-yellow-500/25 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
+                                                        У вас есть незавершенная попытка. Можно продолжить ее на выбранной СУБД.
+                                                    </p>
+                                                )}
+                                                {userExamInfo.usedAttempts > 0 && (
+                                                    <Link
+                                                        to={`/exam/${selectedExam.id}/results`}
+                                                        className="mt-3 block rounded-xl border border-accent/25 bg-accent/10 px-4 py-2 text-center text-sm font-medium text-accent transition hover:bg-accent/15"
+                                                    >
+                                                        Посмотреть попытки ({userExamInfo.usedAttempts})
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="mb-5 space-y-3">
+                                            {selectedExam.availablePlatforms.map((platform) => {
+                                                const isActive = platform.id === selectedDeploymentId;
+
+                                                return (
+                                                    <button
+                                                        key={platform.id}
+                                                        type="button"
+                                                        onClick={() => setSelectedDeploymentId(platform.id)}
+                                                        className={`w-full rounded-3xl border p-4 text-left transition ${
+                                                            isActive
+                                                                ? "border-primary/40 bg-primary/12"
+                                                                : "border-white/8 bg-black/15 hover:border-white/12 hover:bg-black/20"
+                                                        }`}
+                                                    >
+                                                        <p className={`text-lg font-semibold ${isActive ? "text-primary" : "text-text"}`}>
+                                                            {platform.dbType}
+                                                        </p>
+                                                        <p className="mt-1 text-sm text-text/55">{platform.provider}</p>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleStartExam()}
+                                            disabled={
+                                                !selectedExamId ||
+                                                !selectedDeploymentId ||
+                                                isStarting ||
+                                                Boolean(userExamInfo && !userExamInfo.canStart)
+                                            }
+                                            className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-semibold text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
+                                        >
+                                            {isStarting
+                                                ? "Начинаем..."
+                                                : userExamInfo?.hasUnfinishedAttempt
+                                                    ? "Продолжить попытку"
+                                                    : "Начать контрольную"}
+                                        </button>
+                                    </>
+                                )
                             ) : (
                                 <div className="rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-10 text-center text-text/50">
                                     Сначала выберите контрольную работу слева.

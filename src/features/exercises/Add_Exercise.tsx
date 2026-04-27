@@ -200,20 +200,6 @@ export const Add_Exercise = () => {
                 </p>
             </section>
 
-            {message && (
-                <div
-                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${
-                        messageTone === "success"
-                            ? "border-green-500/25 bg-green-500/10 text-green-300"
-                            : messageTone === "error"
-                                ? "border-red-500/25 bg-red-500/10 text-red-300"
-                                : "border-accent/25 bg-accent/10 text-accent"
-                    }`}
-                >
-                    {message}
-                </div>
-            )}
-
             <section className="mb-6 grid gap-3 md:grid-cols-2">
                 {tabItems.map((tab) => {
                     const isActive = tab.id === activeTab;
@@ -372,6 +358,20 @@ export const Add_Exercise = () => {
                             </form>
                         )}
                     </div>
+
+                    {message && (
+                        <div
+                            className={`mb-1 rounded-2xl border px-4 py-3 text-sm ${
+                                messageTone === "success"
+                                    ? "border-green-500/25 bg-green-500/10 text-green-300"
+                                    : messageTone === "error"
+                                        ? "border-red-500/25 bg-red-500/10 text-red-300"
+                                        : "border-accent/25 bg-accent/10 text-accent"
+                            }`}
+                        >
+                            {message}
+                        </div>
+                    )}
 
                     <aside className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         <h2 className="text-2xl font-semibold text-text">Подсказки</h2>

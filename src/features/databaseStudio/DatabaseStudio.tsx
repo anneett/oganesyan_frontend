@@ -410,8 +410,8 @@ export const DatabaseStudio = () => {
                 </div>
             </section>
 
-            <section className="mb-6 grid gap-3 md:grid-cols-4">
-                {tabItems.map((tab) => {
+            <section className="mb-6 grid gap-3 md:grid-cols-3">
+                {tabItems.filter((tab) => tab.id !== "exams").map((tab) => {
                     const isActive = tab.id === activeTab;
 
                     return (
@@ -1061,6 +1061,17 @@ export const DatabaseStudio = () => {
                                     </div>
                                 )}
 
+                                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-text/65">
+                                    <p>Доступно по выбранной БД: легких {availableExerciseCounts.easy}, средних {availableExerciseCounts.medium}, сложных {availableExerciseCounts.hard}.</p>
+                                    {hasExamAvailabilityError && (
+                                        <div className="mt-3 space-y-1 text-red-300">
+                                            {examAvailabilityErrors.map((message) => (
+                                                <p key={message}>{message}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 {examForm.databaseMetaId > 0 && (
                                     <div>
                                         <label className="mb-3 block text-sm font-medium text-text/70">
@@ -1106,17 +1117,6 @@ export const DatabaseStudio = () => {
                                         )}
                                     </div>
                                 )}
-
-                                <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-text/65">
-                                    <p>Доступно по выбранной БД: легких {availableExerciseCounts.easy}, средних {availableExerciseCounts.medium}, сложных {availableExerciseCounts.hard}.</p>
-                                    {hasExamAvailabilityError && (
-                                        <div className="mt-3 space-y-1 text-red-300">
-                                            {examAvailabilityErrors.map((message) => (
-                                                <p key={message}>{message}</p>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
 
                                 <button
                                     type="submit"

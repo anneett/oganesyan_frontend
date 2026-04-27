@@ -27,7 +27,6 @@ export function Exercise() {
     const [deploymentId, setDeploymentId] = useState<number>(0);
     const [answer, setAnswer] = useState("");
     const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
-    const [showStats, setShowStats] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     const { data: exercise, isLoading: loadingExercise, error: exerciseError } = useGetExerciseByIdQuery(exerciseId);
@@ -305,45 +304,6 @@ export function Exercise() {
                             )}
                         </div>
                     )}
-
-                    <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
-                        <div className="flex items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-2xl font-semibold text-text">Статистика</h2>
-                                <p className="mt-1 text-sm text-text/55">Короткая сводка по решению этого упражнения.</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setShowStats((prev) => !prev)}
-                                className="rounded-2xl border border-white/10 bg-black/15 px-4 py-2 text-sm font-medium text-text transition hover:bg-black/20"
-                            >
-                                {showStats ? "Скрыть" : "Показать"}
-                            </button>
-                        </div>
-
-                        {showStats && (
-                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                                <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
-                                    <p className="text-sm text-text/50">Всего попыток</p>
-                                    <p className="mt-2 text-2xl font-semibold text-text">{stats?.totalAttempts ?? 0}</p>
-                                </div>
-                                <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
-                                    <p className="text-sm text-text/50">Верных ответов</p>
-                                    <p className="mt-2 text-2xl font-semibold text-green-300">{stats?.correctAnswers ?? 0}</p>
-                                </div>
-                                <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
-                                    <p className="text-sm text-text/50">Участников</p>
-                                    <p className="mt-2 text-2xl font-semibold text-secondary">{stats?.uniqueUsers ?? 0}</p>
-                                </div>
-                                <div className="rounded-2xl border border-white/8 bg-black/15 p-4">
-                                    <p className="text-sm text-text/50">Процент успеха</p>
-                                    <p className="mt-2 text-2xl font-semibold text-accent">
-                                        {stats ? `${stats.percentCorrect.toFixed(1)}%` : "0%"}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
                 </aside>
             </section>
         </div>
