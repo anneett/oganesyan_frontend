@@ -126,6 +126,30 @@ export interface AttemptDetailsResponse {
     totalExercises?: number;
 }
 
+export interface AdminAttemptDetailsResponse {
+    attemptId: number;
+    examId: number;
+    examTitle: string;
+    isResultsReleased: boolean;
+    userId: number;
+    userLogin: string;
+    userName: string;
+    startedAt: string;
+    finishedAt: string | null;
+    correctAnswers: number;
+    totalExercises: number;
+    solutions: Array<{
+        exerciseId: number;
+        exerciseTitle: string;
+        difficulty: number;
+        isSubmitted: boolean;
+        userAnswer: string | null;
+        isCorrect: boolean | null;
+        result: string | null;
+        correctAnswer: string;
+    }>;
+}
+
 export const examsApi = createApi({
     reducerPath: "examsApi",
     baseQuery,
@@ -185,6 +209,10 @@ export const examsApi = createApi({
             query: (attemptId) => `/Exams/attempt/${attemptId}/details`,
             providesTags: ["ExamResults"],
         }),
+        getAdminAttemptDetails: builder.query<AdminAttemptDetailsResponse, number>({
+            query: (attemptId) => `/Exams/admin/attempt/${attemptId}/details`,
+            providesTags: ["ExamResults"],
+        }),
         getAttemptExercises: builder.query<Exercise[], number>({
             query: (attemptId) => `/Exams/attempt/${attemptId}/exercises`,
             providesTags: ["ExamAttempts"],
@@ -203,5 +231,6 @@ export const {
     useGetUserExamInfoQuery,
     useGetUserAttemptsQuery,
     useGetAttemptDetailsQuery,
+    useGetAdminAttemptDetailsQuery,
     useGetAttemptExercisesQuery,
 } = examsApi;

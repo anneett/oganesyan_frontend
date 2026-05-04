@@ -16,6 +16,7 @@ import { DatabaseStudio } from "./features/databaseStudio/DatabaseStudio.tsx";
 import { ExamMode } from "./features/exams/ExamMode.tsx";
 import {ExamResults} from "./features/exams/ExamResults.tsx";
 import { ExamManagement } from "./features/exams/ExamManagement.tsx";
+import {DatabaseMetaDetail} from "./features/databaseStudio/DatabaseMetaDetail.tsx";
 
 const App = () => {
     return (
@@ -39,6 +40,7 @@ const App = () => {
                             <Route path="/solutions" element={<RequireAdmin><Solutions /></RequireAdmin>} />
                             <Route path="/admin/databases" element={<RequireAdmin><DatabaseStudio /></RequireAdmin>} />
                             <Route path="/admin/exams" element={<RequireAdmin><ExamManagement /></RequireAdmin>} />
+                            <Route path="/admin/databases/:id" element={<RequireAdmin><DatabaseMetaDetail /></RequireAdmin>} />
                         </Route>
                     </Routes>
                 </Router>

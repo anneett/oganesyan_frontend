@@ -49,10 +49,27 @@ export interface CreateDatabaseMetaResponse {
     logicalName: string;
 }
 
+export interface UpdateDatabaseMetaRequest {
+    logicalName: string;
+    description: string;
+    createScriptTemplate?: string;
+    removeErdImage?: boolean;
+    erdImage?: File | null;
+}
+
+export interface UpdateDatabaseMetaResponse {
+    id: number;
+    logicalName: string;
+    description: string;
+    createScriptTemplate: string | null;
+    erdImagePath: string | null;
+}
+
 export interface DeployDatabaseRequest {
     dbMetaId: number;
     physicalDatabaseName: string;
     executeScript: boolean;
+    oneTimeScript?: string;
 }
 
 export interface DeployDatabaseResponse {
@@ -67,11 +84,23 @@ const buildDatabaseMetaFormData = (payload: CreateDatabaseMetaRequest) => {
     formData.append("logicalName", payload.logicalName);
     formData.append("description", payload.description);
     formData.append("createScriptTemplate", payload.createScriptTemplate);
-
     if (payload.erdImage) {
         formData.append("erdImage", payload.erdImage);
     }
+    return formData;
+};
 
+const buildUpdateDatabaseMetaFormData = (payload: UpdateDatabaseMetaRequest) => {
+    const formData = new FormData();
+    formData.append("logicalName", payload.logicalName);
+    formData.append("description", payload.description);
+    if (payload.createScriptTemplate) {
+        formData.append("createScriptTemplate", payload.createScriptTemplate);
+    }
+    formData.append("removeErdImage", String(payload.removeErdImage ?? false));
+    if (payload.erdImage) {
+        formData.append("erdImage", payload.erdImage);
+    }
     return formData;
 };
 
@@ -115,6 +144,14 @@ export const databaseMetasApi = createApi({
             }),
             invalidatesTags: ["DatabaseMetas"],
         }),
+        updateDatabaseMeta: builder.mutation<UpdateDatabaseMetaResponse, { id: number; payload: UpdateDatabaseMetaRequest }>({
+            query: ({ id, payload }) => ({
+                url: `/DatabaseMetas/${id}`,
+                method: "PUT",
+                body: buildUpdateDatabaseMetaFormData(payload),
+            }),
+            invalidatesTags: ["DatabaseMetas"],
+        }),
         getDatabaseDeploymentsByMetaId: builder.query<DatabaseDeployment[], number>({
             query: (metaId) => `/DatabaseDeployments/${metaId}`,
             providesTags: (_result, _error, metaId) => [{ type: "DatabaseDeployments", id: metaId }],
@@ -140,6 +177,7 @@ export const {
     useGetDatabaseMetasQuery,
     useGetDatabaseMetaByIdQuery,
     useCreateDatabaseMetaMutation,
+    useUpdateDatabaseMetaMutation,
     useGetDatabaseDeploymentsByMetaIdQuery,
     useDeployDatabaseMutation,
 } = databaseMetasApi;

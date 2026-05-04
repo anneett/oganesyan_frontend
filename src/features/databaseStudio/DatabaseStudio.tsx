@@ -14,6 +14,7 @@ import {
     useGetDbMetasQuery,
     useTestDbConnectionMutation,
 } from "../databaseMetas/databaseMetasApi";
+import {Link} from "react-router-dom";
 
 type StudioTab = "platforms" | "logical" | "deployments";
 type NoticeTone = "success" | "error" | "info";
@@ -68,7 +69,7 @@ export const DatabaseStudio = () => {
     const [deploymentForm, setDeploymentForm] = useState({
         dbMetaId: 0,
         physicalDatabaseName: "",
-        executeScript: true,
+        oneTimeScript: "",
     });
 
     const [dbNotice, setDbNotice] = useState<Notice | null>(null);
@@ -102,6 +103,8 @@ export const DatabaseStudio = () => {
         (acc, meta) => acc + (meta.deployments?.filter((item) => item.isDeployed).length ?? 0),
         0,
     );
+    const hasScriptSourceForDeployment =
+        Boolean(selectedMeta?.createScriptTemplate?.trim()) || Boolean(deploymentForm.oneTimeScript.trim());
 
     const handleTestConnection = async () => {
         try {
@@ -181,6 +184,7 @@ export const DatabaseStudio = () => {
                 payload: {
                     ...deploymentForm,
                     dbMetaId: effectiveDbMetaId,
+                    executeScript: true,
                 },
             }).unwrap();
 
@@ -199,7 +203,7 @@ export const DatabaseStudio = () => {
             setDeploymentForm((prev) => ({
                 ...prev,
                 physicalDatabaseName: "",
-                executeScript: true,
+                oneTimeScript: "",
             }));
 
             await Promise.all([refetchDatabaseMetas(), refetchDeployments()]);
@@ -508,6 +512,14 @@ export const DatabaseStudio = () => {
                                                         {meta.erdImagePath ? "ERD загружена" : "ERD не загружена"}
                                                     </span>
                                                 </div>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                                    <Link
+                                                        to={`/admin/databases/${meta.id}`}
+                                                        className="rounded-xl border border-accent/20 bg-accent/10 px-3 py-1 text-xs text-accent transition hover:bg-accent/15"
+                                                    >
+                                                        Подробнее
+                                                    </Link>
+                                                </div>
                                             </div>
 
                                             {meta.erdImagePath && (
@@ -632,13 +644,8 @@ export const DatabaseStudio = () => {
                                 <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-4">
                                     <input
                                         type="checkbox"
-                                        checked={deploymentForm.executeScript}
-                                        onChange={(event) =>
-                                            setDeploymentForm((prev) => ({
-                                                ...prev,
-                                                executeScript: event.target.checked,
-                                            }))
-                                        }
+                                        checked={true}
+                                        readOnly
                                         className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent text-accent"
                                     />
                                     <div>
@@ -649,12 +656,53 @@ export const DatabaseStudio = () => {
                                     </div>
                                 </label>
 
+                                    <div>
+                                        <label className="mb-2 block text-sm font-medium text-text/70">
+                                            Одноразовый SQL-скрипт
+                                            <span className="ml-2 text-xs font-normal text-text/40">(необязательно)</span>
+                                        </label>
+                                        <textarea
+                                            rows={8}
+                                            value={deploymentForm.oneTimeScript}
+                                            onChange={(event) =>
+                                                setDeploymentForm((prev) => ({
+                                                    ...prev,
+                                                    oneTimeScript: event.target.value,
+                                                }))
+                                            }
+                                            placeholder={
+                                                selectedMeta?.createScriptTemplate
+                                                    ? "Оставьте пустым, чтобы использовать шаблон логической БД..."
+                                                    : "CREATE TABLE ...;\nINSERT INTO ...;"
+                                            }
+                                            className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 font-mono text-sm text-text outline-none transition focus:border-accent/50"
+                                        />
+
+                                        <div className="mt-2 rounded-xl border border-white/8 bg-black/15 px-3 py-2 text-xs text-text/50">
+                                            {deploymentForm.oneTimeScript.trim() ? (
+                                                <span className="text-accent">
+                                                    Будет выполнен введённый одноразовый скрипт (шаблон БД проигнорирован).
+                                                </span>
+                                            ) : selectedMeta?.createScriptTemplate ? (
+                                                <span className="text-green-400">
+                                                    Будет использован SQL-шаблон из логической БД.
+                                                </span>
+                                            ) : (
+                                                <span className="text-yellow-400">
+                                                    У логической БД нет шаблона и не введён одноразовый скрипт.
+                                                    Физическая БД не будет создана.
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
                                 <button
                                     type="submit"
                                     disabled={
                                         isDeploying ||
                                         !effectiveSelectedMetaId ||
-                                        !deploymentForm.physicalDatabaseName.trim()
+                                        !deploymentForm.physicalDatabaseName.trim() ||
+                                        !hasScriptSourceForDeployment
                                     }
                                     className="w-full rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-semibold text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
                                 >

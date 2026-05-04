@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
 import { useCreateExerciseMutation, useTestQueryMutation, useBatchUploadExercisesMutation } from "./exercisesApi";
@@ -20,11 +20,13 @@ const tabItems: { id: ExerciseTab; label: string; subtitle: string }[] = [
 ];
 
 export const Add_Exercise = () => {
+    const [searchParams] = useSearchParams();
+    const preselectedDatabaseMetaId = Number(searchParams.get("databaseMetaId") ?? "0");
     const [activeTab, setActiveTab] = useState<ExerciseTab>("single");
 
     const [title, setTitle] = useState("");
     const [difficulty, setDifficulty] = useState<0 | 1 | 2>(0);
-    const [databaseMetaId, setDatabaseMetaId] = useState<number>(0);
+    const [databaseMetaId, setDatabaseMetaId] = useState<number>(preselectedDatabaseMetaId);
     const [correctAnswer, setCorrectAnswer] = useState("");
     const [testDeploymentId, setTestDeploymentId] = useState<number>(0);
     const [isTestPanelOpen, setIsTestPanelOpen] = useState(false);
@@ -32,7 +34,7 @@ export const Add_Exercise = () => {
     const [isTestLoading, setIsTestLoading] = useState(false);
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [batchDatabaseMetaId, setBatchDatabaseMetaId] = useState<number>(0);
+    const [batchDatabaseMetaId, setBatchDatabaseMetaId] = useState<number>(preselectedDatabaseMetaId);
     const [batchDefaultDifficulty, setBatchDefaultDifficulty] = useState<0 | 1 | 2>(1);
     const [uploadResult, setUploadResult] = useState<BatchUploadResult | null>(null);
 
