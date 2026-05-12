@@ -6,6 +6,7 @@ import { useGetUserProfileByIdQuery, useGetUserStatsQuery } from "./usersApi";
 type SortDate = 'newest' | 'oldest';
 type SortCorrectness = 'all' | 'correct-first' | 'incorrect-first';
 type SortDifficulty = 'default' | 'easy-first' | 'hard-first';
+type FilterType = 'all' | 'exam' | 'training';
 
 export function UserProfileView() {
     const { id } = useParams();
@@ -18,6 +19,7 @@ export function UserProfileView() {
     const [sortDate, setSortDate] = useState<SortDate>('newest');
     const [sortCorrectness, setSortCorrectness] = useState<SortCorrectness>('all');
     const [sortDifficulty, setSortDifficulty] = useState<SortDifficulty>('default');
+    const [filterType, setFilterType] = useState<FilterType>('all');
 
     const { data: user, isLoading: loadingUser } = useGetUserProfileByIdQuery(userId);
     const { data: databases = [] } = useGetDatabaseMetasQuery();
@@ -38,6 +40,9 @@ export function UserProfileView() {
             result = result.filter(s => s.exerciseTitle.toLowerCase().includes(searchTitle.toLowerCase()));
         }
 
+        if (filterType === 'exam') result = result.filter(s => s.isExam);
+        else if (filterType === 'training') result = result.filter(s => !s.isExam);
+
         return result.sort((a, b) => {
             if (sortCorrectness === 'correct-first') return (b.isCorrect ? 1 : 0) - (a.isCorrect ? 1 : 0);
             if (sortCorrectness === 'incorrect-first') return (a.isCorrect ? 1 : 0) - (b.isCorrect ? 1 : 0);
@@ -46,10 +51,12 @@ export function UserProfileView() {
             if (sortDate === 'newest') return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
             return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
         });
-    }, [stats, searchTitle, sortDate, sortCorrectness, sortDifficulty]);
+    }, [stats, searchTitle, sortDate, sortCorrectness, sortDifficulty, filterType]);
 
     if (loadingUser || loadingStats) return <div className="mx-auto max-w-6xl px-4 py-8 text-text/60">Загружаем профиль студента...</div>;
     if (!user) return <div className="mx-auto max-w-6xl px-4 py-8 text-red-300">Студент не найден.</div>;
+
+    const hasActiveFilters = sortDate !== 'newest' || sortCorrectness !== 'all' || sortDifficulty !== 'default' || filterType !== 'all';
 
     return (
         <div className="mx-auto max-w-6xl px-4 py-8">
@@ -96,27 +103,33 @@ export function UserProfileView() {
                 </select>
                 <button
                     onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                    className={`px-4 py-3 rounded-xl border transition-all ${isFiltersOpen ? 'bg-accent/10 border-accent/50 text-accent' : 'bg-background border-secondary/30 text-text/70'}`}
+                    className={`px-4 py-3 rounded-xl border transition-all ${isFiltersOpen || hasActiveFilters ? 'bg-accent/10 border-accent/50 text-accent' : 'bg-background border-secondary/30 text-text/70'}`}
                 >
-                    Сортировка
+                    Сортировка и фильтры {hasActiveFilters && " (Активны)"}
                 </button>
             </div>
 
-            <div className={`overflow-hidden transition-all duration-300 ${isFiltersOpen ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0'}`}>
+            <div className={`overflow-hidden transition-all duration-300 ${isFiltersOpen ? 'max-h-[500px] opacity-100 mb-6' : 'max-h-0 opacity-0'}`}>
                 <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4 flex gap-4 flex-wrap">
                     <div className="flex gap-2">
-                        <button onClick={() => setSortDate('newest')} className={`px-3 py-1.5 rounded-lg text-sm ${sortDate === 'newest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70'}`}>Новые</button>
-                        <button onClick={() => setSortDate('oldest')} className={`px-3 py-1.5 rounded-lg text-sm ${sortDate === 'oldest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70'}`}>Старые</button>
+                        <button onClick={() => setSortDate('newest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'newest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Новые</button>
+                        <button onClick={() => setSortDate('oldest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'oldest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Старые</button>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setSortCorrectness('all')} className={`px-3 py-1.5 rounded-lg text-sm ${sortCorrectness === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70'}`}>Все</button>
-                        <button onClick={() => setSortCorrectness('correct-first')} className={`px-3 py-1.5 rounded-lg text-sm ${sortCorrectness === 'correct-first' ? 'bg-green-500 text-white' : 'bg-secondary/10 text-text/70'}`}>Верные</button>
-                        <button onClick={() => setSortCorrectness('incorrect-first')} className={`px-3 py-1.5 rounded-lg text-sm ${sortCorrectness === 'incorrect-first' ? 'bg-red-500 text-white' : 'bg-secondary/10 text-text/70'}`}>Ошибки</button>
+                        <button onClick={() => setSortCorrectness('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все</button>
+                        <button onClick={() => setSortCorrectness('correct-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'correct-first' ? 'bg-green-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Верные</button>
+                        <button onClick={() => setSortCorrectness('incorrect-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'incorrect-first' ? 'bg-red-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Ошибки</button>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg text-sm ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70'}`}>Любая</button>
-                        <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400' : 'bg-secondary/10 text-text/70'}`}>Лёгкие</button>
-                        <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400' : 'bg-secondary/10 text-text/70'}`}>Сложные</button>
+                        <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Любая</button>
+                        <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Лёгкие</button>
+                        <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сложные</button>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все типы</button>
+                        <button onClick={() => setFilterType('training')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'training' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Тренировки</button>
+                        <button onClick={() => setFilterType('exam')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'exam' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Контрольные</button>
                     </div>
                 </div>
             </div>

@@ -333,7 +333,7 @@ export function Exercise() {
                                     <h2 className={`text-2xl font-semibold ${createSolution.data.isCorrect ? "text-green-200" : "text-red-200"}`}>
                                         {createSolution.data.isCorrect ? "Ответ верный" : "Ответ не совпал"}
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-text/70">{createSolution.data.message}</p>
+                                    <p className="mt-2 text-sm leading-6 text-text/70">{createSolution.data.result}</p>
                                 </div>
 
                                 {!createSolution.data.isCorrect && (

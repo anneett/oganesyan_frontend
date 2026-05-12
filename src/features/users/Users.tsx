@@ -279,6 +279,43 @@ export function Users() {
                     </div>
                 )}
 
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-sm text-text/50">Сортировка:</span>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setSortRole('all')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
+                                sortRole === 'all'
+                                    ? 'bg-accent text-background'
+                                    : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                            }`}
+                        >
+                            Все
+                        </button>
+                        <button
+                            onClick={() => setSortRole('admins-first')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                                sortRole === 'admins-first'
+                                    ? 'bg-accent text-background'
+                                    : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                            }`}
+                        >
+                            Сначала админы
+                        </button>
+                        <button
+                            onClick={() => setSortRole('users-first')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                                sortRole === 'users-first'
+                                    ? 'bg-accent text-background'
+                                    : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
+                            }`}
+                        >
+                            Сначала пользователи
+                        </button>
+                    </div>
+                </div>
+
+
                 <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -340,7 +377,7 @@ export function Users() {
                                                     <span className="text-xs font-bold uppercase text-text">{user.login.charAt(0)}</span>
                                                 </div>
                                                 <div>
-                                                    <Link to={`/admin/users/${user.id}`} className="font-medium text-text hover:text-accent hover:underline">
+                                                    <Link to={`/users/${user.id}`} className="font-medium text-text hover:text-accent hover:underline">
                                                         {user.login} {isSelf && <span className="ml-2 px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded-full">Вы</span>}
                                                     </Link>
                                                     <p className="text-sm text-text/60">{user.userName}</p>

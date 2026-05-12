@@ -199,14 +199,6 @@ export function Exercises() {
                                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div>
                                         <div className="flex flex-wrap gap-2">
-                                            {isSolved && (
-                                                <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400 border border-green-500/30 flex items-center gap-1">
-                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Решено
-                                                </span>
-                                            )}
                                             <span className={`rounded-full border px-3 py-1 text-xs font-medium ${difficulty.color}`}>
                                                 {difficulty.label}
                                             </span>
@@ -217,11 +209,21 @@ export function Exercises() {
                                         <h2 className="mt-3 text-xl font-semibold text-text">{exercise.title}</h2>
                                     </div>
 
-                                    <div className="flex items-center text-accent font-medium text-sm gap-1 group-hover:translate-x-1 transition-transform">
-                                        Открыть
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
+                                    <div className="flex items-center gap-4">
+                                        {isSolved && (
+                                            <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400 border border-green-500/30 flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                                Решено
+                                            </span>
+                                        )}
+                                        <div className="flex items-center text-accent font-medium text-sm gap-1 group-hover:translate-x-1 transition-transform">
+                                            Открыть
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
                                     </div>
                                 </div>
                             </Link>
