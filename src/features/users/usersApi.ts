@@ -20,7 +20,9 @@ export interface UserUpdateRequest {
 
 export interface UserSolution {
     solutionId: number;
+    userId: number;
     exerciseId: number;
+    databaseMetaId: number;
     exerciseTitle: string;
     exerciseDifficulty: 0 | 1 | 2;
     correctAnswer: string;
@@ -57,8 +59,16 @@ export const usersApi = createApi({
             query: () => '/Users/profile',
             providesTags: ['Profile'],
         }),
-        getUserStats: builder.query<UserSolution[], void>({
-            query: () => '/Users/stat',
+        getUserProfileById: builder.query<User, number>({
+            query: (id) => `/Users/profile/${id}`,
+        }),
+        getUserStats: builder.query<UserSolution[], { userId?: number; databaseMetaId?: number } | void>({
+            query: (params) => {
+                const userId = params && "userId" in params ? params.userId : undefined;
+                const databaseMetaId = params && "databaseMetaId" in params ? params.databaseMetaId : undefined;
+                const search = databaseMetaId ? `?databaseMetaId=${databaseMetaId}` : "";
+                return userId ? `/Users/stat/${userId}${search}` : `/Users/stat${search}`;
+            },
         }),
         updateUser: builder.mutation<void, UserUpdateRequest>({
             query: (data) => ({
@@ -89,6 +99,7 @@ export const {
     useCreateUserMutation,
     useGetUsersQuery,
     useGetUserProfileQuery,
+    useGetUserProfileByIdQuery,
     useGetUserStatsQuery,
     useUpdateUserMutation,
     useChangeUserMutation,

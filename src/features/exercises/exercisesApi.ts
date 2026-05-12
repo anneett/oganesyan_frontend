@@ -37,6 +37,9 @@ export interface QueryResult {
     userColumnCount: number;
     columnNames: string[];
     userRows: string[][];
+    referenceRowCount?: number;
+    referenceColumnCount?: number;
+    referenceRows?: string[][];
     errorDetails?: string;
 }
 
@@ -82,8 +85,11 @@ export const exercisesApi = createApi({
         getExerciseById: builder.query<Exercise, number>({
             query: (id) => `/Exercises/${id}`,
         }),
-        getExercises: builder.query<Exercise[], void>({
-            query: () => "/Exercises/all",
+        getExercises: builder.query<Exercise[], { databaseMetaId?: number } | void>({
+            query: (params) => {
+                const databaseMetaId = params && "databaseMetaId" in params ? params.databaseMetaId : undefined;
+                return databaseMetaId ? `/Exercises/all?databaseMetaId=${databaseMetaId}` : "/Exercises/all";
+            },
             providesTags: ["Exercises"],
         }),
         getExerciseStats: builder.query<ExerciseStatsDto, number>({

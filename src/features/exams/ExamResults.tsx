@@ -2,7 +2,6 @@ import { skipToken } from "@reduxjs/toolkit/query";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetAttemptDetailsQuery, useGetAttemptExercisesQuery, useGetUserAttemptsQuery } from "./examsApi";
-import { useGetExercisesQuery } from "../exercises/exercisesApi";
 
 const difficultyLabels = ["Легкая", "Средняя", "Сложная"];
 
@@ -30,8 +29,6 @@ export const ExamResults = () => {
     const { data: attemptsData, isLoading: isLoadingAttempts } = useGetUserAttemptsQuery(
         examId ? Number(examId) : skipToken,
     );
-
-    const { data: exercises = [] } = useGetExercisesQuery();
 
     const { data: attemptDetails } = useGetAttemptDetailsQuery(selectedAttemptId ?? skipToken, {
         skip: !selectedAttemptId,
@@ -266,8 +263,6 @@ export const ExamResults = () => {
                                 <div className="space-y-4">
                                     {attemptExercises.map((exercise, index) => {
                                         const solution = solutionMap.get(exercise.id);
-                                        const fullExercise = exercises.find((item) => item.id === exercise.id);
-
                                         return (
                                             <article
                                                 key={exercise.id}
@@ -317,15 +312,6 @@ export const ExamResults = () => {
                                                                 }`}
                                                             >
                                                                 {solution.result}
-                                                            </div>
-                                                        )}
-
-                                                        {!solution.isCorrect && fullExercise?.correctAnswer && (
-                                                            <div className="mt-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                                                                <p className="mb-2 text-sm font-medium text-text/70">Правильный ответ:</p>
-                                                                <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-sm text-text">
-                                                                    {fullExercise.correctAnswer}
-                                                                </pre>
                                                             </div>
                                                         )}
                                                     </>

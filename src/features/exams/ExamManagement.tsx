@@ -1,7 +1,7 @@
 import { skipToken } from "@reduxjs/toolkit/query";
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
 import {
@@ -90,7 +90,7 @@ export const ExamManagement = () => {
     const availableDeploymentsForExam = useMemo(() => {
         if (!examForm.databaseMetaId) return [];
         const meta = databaseMetas.find((item) => item.id === examForm.databaseMetaId);
-        return meta?.deployments?.filter((deployment) => deployment.isDeployed) ?? [];
+        return meta?.deployments ?? [];
     }, [databaseMetas, examForm.databaseMetaId]);
 
     const availableExerciseCounts = useMemo(() => {
@@ -513,7 +513,7 @@ export const ExamManagement = () => {
                                                         />
                                                         <div className="flex-1">
                                                             <p className={`font-medium ${isSelected ? "text-accent" : "text-text"}`}>
-                                                                {deployment.dbMeta?.dbType} · {deployment.physicaDatabaseName}
+                                                                {deployment.dbMeta?.name ?? "Подключение"} · {deployment.dbMeta?.dbType ?? "СУБД"}
                                                             </p>
                                                             <p className="mt-1 text-sm text-text/55">
                                                                 {deployment.dbMeta?.provider}
@@ -662,7 +662,9 @@ export const ExamManagement = () => {
                                         >
                                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                                 <div>
-                                                    <p className="text-lg font-semibold text-text">{attempt.userName}</p>
+                                                    <Link to={`/users/${attempt.userId}`} className="text-lg font-semibold text-text transition hover:text-accent">
+                                                        {attempt.userName}
+                                                    </Link>
                                                     <p className="mt-1 text-sm text-text/55">@{attempt.userLogin}</p>
                                                     <p className="mt-2 text-xs text-text/45">
                                                         Начал: {formatDateTime(attempt.startedAt)}
@@ -694,7 +696,10 @@ export const ExamManagement = () => {
                                                 <div>
                                                     <h2 className="text-2xl font-semibold text-text">Ответы по попытке</h2>
                                                     <p className="mt-1 text-sm text-text/55">
-                                                        {adminAttemptDetails.userName} (@{adminAttemptDetails.userLogin})
+                                                        <Link to={`/users/${adminAttemptDetails.userId}`} className="text-accent hover:underline">
+                                                            {adminAttemptDetails.userName}
+                                                        </Link>{" "}
+                                                        (@{adminAttemptDetails.userLogin})
                                                     </p>
                                                 </div>
                                                 <div className="rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 text-center">

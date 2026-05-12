@@ -9,6 +9,7 @@ import { Exercises } from "./features/exercises/Exercises.tsx";
 import { Exercise } from "./features/exercises/Exercise.tsx";
 import { Add_Exercise } from "./features/exercises/Add_Exercise.tsx";
 import { Profile } from "./features/users/Profile.tsx";
+import { UserProfileView } from "./features/users/UserProfileView.tsx";
 import { Users } from "./features/users/Users.tsx";
 import { Solutions } from "./features/solutions/Solutions.tsx";
 import { RequireAdmin } from "./features/auth/RequireAdmin.tsx";
@@ -36,6 +37,7 @@ const App = () => {
                             <Route path="/exercise/:id" element={<RequireAuth><Exercise /></RequireAuth>} />
 
                             <Route path="/users" element={<RequireAdmin><Users /></RequireAdmin>} />
+                            <Route path="/users/:id" element={<RequireAdmin><UserProfileView /></RequireAdmin>} />
                             <Route path="/add-exercise" element={<RequireAdmin><Add_Exercise /></RequireAdmin>} />
                             <Route path="/solutions" element={<RequireAdmin><Solutions /></RequireAdmin>} />
                             <Route path="/admin/databases" element={<RequireAdmin><DatabaseStudio /></RequireAdmin>} />

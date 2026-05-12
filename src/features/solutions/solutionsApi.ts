@@ -50,11 +50,17 @@ export const solutionsApi = createApi({
                 body: payload,
             }),
         }),
-        getExercisesStats: builder.query<ExerciseStatsDto[], void>({
-            query: () => "/Solutions/exercises-percent",
+        getExercisesStats: builder.query<ExerciseStatsDto[], { databaseMetaId?: number } | void>({
+            query: (params) => {
+                const databaseMetaId = params && "databaseMetaId" in params ? params.databaseMetaId : undefined;
+                return databaseMetaId ? `/Solutions/exercises-percent?databaseMetaId=${databaseMetaId}` : "/Solutions/exercises-percent";
+            },
         }),
-        getUsersStats: builder.query<UserStatsDto[], void>({
-            query: () => "/Solutions/users-percent",
+        getUsersStats: builder.query<UserStatsDto[], { databaseMetaId?: number } | void>({
+            query: (params) => {
+                const databaseMetaId = params && "databaseMetaId" in params ? params.databaseMetaId : undefined;
+                return databaseMetaId ? `/Solutions/users-percent?databaseMetaId=${databaseMetaId}` : "/Solutions/users-percent";
+            },
         }),
     }),
 });

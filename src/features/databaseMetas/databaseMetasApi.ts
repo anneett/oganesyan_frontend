@@ -3,13 +3,23 @@ import { baseQuery } from "../../app/baseQuery";
 
 export interface DbMeta {
     id: number;
+    name: string;
     dbType: string;
     provider: string;
+    createdAt: string;
+    maskedConnectionString: string;
 }
 
 export interface DbMetaCreateRequest {
+    name: string;
     dbType: string;
     connectionString: string;
+}
+
+export interface DbMetaUpdateRequest {
+    name: string;
+    dbType: string;
+    connectionString?: string;
 }
 
 export interface DbConnectionTestResponse {
@@ -21,83 +31,52 @@ export interface DatabaseDeployment {
     id: number;
     databaseMetaId: number;
     dbMetaId: number;
-    physicaDatabaseName: string;
-    isDeployed: boolean;
-    deployedAt: string;
+    linkedAt: string;
     dbMeta?: DbMeta | null;
 }
 
 export interface DatabaseMeta {
     id: number;
     logicalName: string;
+    physicalName: string;
     description: string;
     erdImagePath: string | null;
-    createScriptTemplate: string | null;
     createdAt: string;
-    deployments?: DatabaseDeployment[];
+    deployments: DatabaseDeployment[];
 }
 
 export interface CreateDatabaseMetaRequest {
     logicalName: string;
+    physicalName: string;
     description: string;
-    createScriptTemplate: string;
+    connectionIds: number[];
     erdImage?: File | null;
 }
 
 export interface CreateDatabaseMetaResponse {
     id: number;
     logicalName: string;
+    physicalName: string;
 }
 
 export interface UpdateDatabaseMetaRequest {
     logicalName: string;
+    physicalName: string;
     description: string;
-    createScriptTemplate?: string;
+    connectionIds: number[];
     removeErdImage?: boolean;
     erdImage?: File | null;
 }
 
-export interface UpdateDatabaseMetaResponse {
-    id: number;
-    logicalName: string;
-    description: string;
-    createScriptTemplate: string | null;
-    erdImagePath: string | null;
-}
-
-export interface DeployDatabaseRequest {
-    dbMetaId: number;
-    physicalDatabaseName: string;
-    executeScript: boolean;
-    oneTimeScript?: string;
-}
-
-export interface DeployDatabaseResponse {
-    id?: number;
-    physicaDatabaseName?: string;
-    isDeployed?: boolean;
-    message?: string;
-}
-
-const buildDatabaseMetaFormData = (payload: CreateDatabaseMetaRequest) => {
+const buildDatabaseMetaFormData = (payload: CreateDatabaseMetaRequest | UpdateDatabaseMetaRequest) => {
     const formData = new FormData();
     formData.append("logicalName", payload.logicalName);
+    formData.append("physicalName", payload.physicalName);
     formData.append("description", payload.description);
-    formData.append("createScriptTemplate", payload.createScriptTemplate);
-    if (payload.erdImage) {
-        formData.append("erdImage", payload.erdImage);
+    payload.connectionIds.forEach((id) => formData.append("connectionIds", String(id)));
+    if ("removeErdImage" in payload) {
+        formData.append("removeErdImage", String(payload.removeErdImage ?? false));
     }
-    return formData;
-};
-
-const buildUpdateDatabaseMetaFormData = (payload: UpdateDatabaseMetaRequest) => {
-    const formData = new FormData();
-    formData.append("logicalName", payload.logicalName);
-    formData.append("description", payload.description);
-    if (payload.createScriptTemplate) {
-        formData.append("createScriptTemplate", payload.createScriptTemplate);
-    }
-    formData.append("removeErdImage", String(payload.removeErdImage ?? false));
     if (payload.erdImage) {
         formData.append("erdImage", payload.erdImage);
     }
@@ -120,6 +99,14 @@ export const databaseMetasApi = createApi({
                 body: payload,
             }),
             invalidatesTags: ["DbMetas"],
+        }),
+        updateDbMeta: builder.mutation<DbMeta, { id: number; payload: DbMetaUpdateRequest }>({
+            query: ({ id, payload }) => ({
+                url: `/DbMetas/${id}`,
+                method: "PUT",
+                body: payload,
+            }),
+            invalidatesTags: ["DbMetas", "DatabaseMetas"],
         }),
         testDbConnection: builder.mutation<DbConnectionTestResponse, DbMetaCreateRequest>({
             query: (payload) => ({
@@ -144,28 +131,17 @@ export const databaseMetasApi = createApi({
             }),
             invalidatesTags: ["DatabaseMetas"],
         }),
-        updateDatabaseMeta: builder.mutation<UpdateDatabaseMetaResponse, { id: number; payload: UpdateDatabaseMetaRequest }>({
+        updateDatabaseMeta: builder.mutation<DatabaseMeta, { id: number; payload: UpdateDatabaseMetaRequest }>({
             query: ({ id, payload }) => ({
                 url: `/DatabaseMetas/${id}`,
                 method: "PUT",
-                body: buildUpdateDatabaseMetaFormData(payload),
+                body: buildDatabaseMetaFormData(payload),
             }),
-            invalidatesTags: ["DatabaseMetas"],
+            invalidatesTags: ["DatabaseMetas", "DatabaseDeployments"],
         }),
         getDatabaseDeploymentsByMetaId: builder.query<DatabaseDeployment[], number>({
             query: (metaId) => `/DatabaseDeployments/${metaId}`,
             providesTags: (_result, _error, metaId) => [{ type: "DatabaseDeployments", id: metaId }],
-        }),
-        deployDatabase: builder.mutation<DeployDatabaseResponse, { databaseMetaId: number; payload: DeployDatabaseRequest }>({
-            query: ({ databaseMetaId, payload }) => ({
-                url: `/DatabaseDeployments/deploy/${databaseMetaId}`,
-                method: "POST",
-                body: payload,
-            }),
-            invalidatesTags: (_result, _error, { databaseMetaId }) => [
-                { type: "DatabaseDeployments", id: databaseMetaId },
-                "DatabaseMetas",
-            ],
         }),
     }),
 });
@@ -173,11 +149,11 @@ export const databaseMetasApi = createApi({
 export const {
     useGetDbMetasQuery,
     useCreateDbMetaMutation,
+    useUpdateDbMetaMutation,
     useTestDbConnectionMutation,
     useGetDatabaseMetasQuery,
     useGetDatabaseMetaByIdQuery,
     useCreateDatabaseMetaMutation,
     useUpdateDatabaseMetaMutation,
     useGetDatabaseDeploymentsByMetaIdQuery,
-    useDeployDatabaseMutation,
 } = databaseMetasApi;

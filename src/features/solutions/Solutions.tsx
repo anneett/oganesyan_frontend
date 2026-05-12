@@ -1,18 +1,26 @@
 import { useGetExercisesStatsQuery, useGetUsersStatsQuery } from './solutionsApi.ts';
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
+import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
 
 type SortSuccess = 'default' | 'high-first' | 'low-first';
 type SortAttempts = 'default' | 'most-first' | 'least-first';
 
 export function Solutions() {
-    const { data: exerciseStats, isLoading: loadingExercises, error: errorExercises } = useGetExercisesStatsQuery();
-    const { data: userStats, isLoading: loadingUsers, error: errorUsers } = useGetUsersStatsQuery();
-
     const [search, setSearch] = useState("");
     const [showUserStats, setShowUserStats] = useState(false);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [sortSuccess, setSortSuccess] = useState<SortSuccess>('default');
     const [sortAttempts, setSortAttempts] = useState<SortAttempts>('default');
+    const [selectedDatabaseMetaId, setSelectedDatabaseMetaId] = useState<number | null>(null);
+
+    const { data: databases = [] } = useGetDatabaseMetasQuery();
+    const { data: exerciseStats, isLoading: loadingExercises, error: errorExercises } = useGetExercisesStatsQuery(
+        selectedDatabaseMetaId ? { databaseMetaId: selectedDatabaseMetaId } : undefined,
+    );
+    const { data: userStats, isLoading: loadingUsers, error: errorUsers } = useGetUsersStatsQuery(
+        selectedDatabaseMetaId ? { databaseMetaId: selectedDatabaseMetaId } : undefined,
+    );
 
     const isLoading = loadingExercises || loadingUsers;
     const hasError = errorExercises || errorUsers;
@@ -478,9 +486,9 @@ export function Solutions() {
                                                         {stat.userLogin.charAt(0)}
                                                     </span>
                                             </div>
-                                            <span className="font-medium text-text">
-                                                    {stat.userLogin}
-                                                </span>
+                                            <Link to={`/users/${stat.userId}`} className="font-medium text-text transition hover:text-accent">
+                                                {stat.userLogin}
+                                            </Link>
                                         </div>
                                     </td>
                                     <td className="px-4 py-4">
@@ -498,8 +506,21 @@ export function Solutions() {
                                                 <div
                                                     className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(stat.percentCorrect)}`}
                                                     style={{ width: `${stat.percentCorrect}%` }}
-                                                />
-                                            </div>
+                    />
+                </div>
+
+                <select
+                    value={selectedDatabaseMetaId ?? ""}
+                    onChange={(event) => setSelectedDatabaseMetaId(event.target.value ? Number(event.target.value) : null)}
+                    className="px-4 py-3 bg-background border border-secondary/30 rounded-xl text-text focus:outline-none focus:border-accent"
+                >
+                    <option value="">Все БД</option>
+                    {databases.map((database) => (
+                        <option key={database.id} value={database.id}>
+                            {database.logicalName}
+                        </option>
+                    ))}
+                </select>
                                             <span className={`px-2 py-1 text-sm font-bold rounded-lg min-w-[60px] text-center ${getPercentColor(stat.percentCorrect)}`}>
                                                     {stat.percentCorrect}%
                                                 </span>

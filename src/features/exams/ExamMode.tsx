@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { skipToken } from "@reduxjs/toolkit/query";
 import { API_ORIGIN } from "../../app/baseQuery";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
 import { useGetDatabaseMetaByIdQuery } from "../databaseMetas/databaseMetasApi";
-import type { Exercise } from "../exercises/exercisesApi";
+import type { Exercise, QueryResult } from "../exercises/exercisesApi";
+import { useTestQueryMutation } from "../exercises/exercisesApi";
 import {
     type Exam,
     type ExamAttempt,
@@ -51,6 +52,9 @@ export const ExamMode = () => {
     const [now, setNow] = useState(Date.now());
     const [generalError, setGeneralError] = useState<string | null>(null);
     const [isSubmittingAnswers, setIsSubmittingAnswers] = useState(false);
+    const [previewErrors, setPreviewErrors] = useState<Record<number, string>>({});
+    const [previewResults, setPreviewResults] = useState<Record<number, QueryResult>>({});
+    const [previewLoadingExerciseId, setPreviewLoadingExerciseId] = useState<number | null>(null);
 
     const finishInProgress = useRef(false);
     const answersRef = useRef<Record<number, string>>({});
@@ -62,6 +66,7 @@ export const ExamMode = () => {
     const [startExam, { isLoading: isStarting }] = useStartExamMutation();
     const [finishExam] = useFinishExamMutation();
     const [createSolution] = useCreateSolutionMutation();
+    const [testQuery] = useTestQueryMutation();
 
     const selectedExam = useMemo(
         () => activeExams.find((exam) => exam.id === selectedExamId) ?? null,
@@ -240,6 +245,32 @@ export const ExamMode = () => {
 
         return () => window.clearInterval(intervalId);
     }, [currentAttempt, handleFinishExam, selectedExam]);
+
+    const handlePreviewQuery = async (exerciseId: number) => {
+        const query = answers[exerciseId]?.trim();
+
+        if (!currentAttempt || !query) {
+            setPreviewErrors((prev) => ({ ...prev, [exerciseId]: "Введите SQL-запрос для выполнения." }));
+            return;
+        }
+
+        try {
+            setPreviewLoadingExerciseId(exerciseId);
+            setPreviewErrors((prev) => ({ ...prev, [exerciseId]: "" }));
+            const result = await testQuery({
+                deploymentId: currentAttempt.selectedDeploymentId,
+                query,
+            }).unwrap();
+            setPreviewResults((prev) => ({ ...prev, [exerciseId]: result }));
+        } catch (requestError) {
+            setPreviewErrors((prev) => ({
+                ...prev,
+                [exerciseId]: getApiErrorMessage(requestError, "Не удалось выполнить запрос."),
+            }));
+        } finally {
+            setPreviewLoadingExerciseId(null);
+        }
+    };
 
     const handleStartExam = async () => {
         if (!selectedExamId || !selectedDeploymentId) {
@@ -511,9 +542,9 @@ export const ExamMode = () => {
                                                         }`}
                                                     >
                                                         <p className={`text-lg font-semibold ${isActive ? "text-primary" : "text-text"}`}>
-                                                            {platform.dbType}
+                                                            {platform.connectionName || platform.dbType}
                                                         </p>
-                                                        <p className="mt-1 text-sm text-text/55">{platform.provider}</p>
+                                                        <p className="mt-1 text-sm text-text/55">{platform.dbType} · {platform.provider}</p>
                                                     </button>
                                                 );
                                             })}
@@ -741,6 +772,69 @@ export const ExamMode = () => {
                                             />
                                         </div>
 
+                                        {!currentAttempt.finishedAt && (
+                                            <div className="mt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handlePreviewQuery(exercise.id)}
+                                                    disabled={previewLoadingExerciseId === exercise.id || !answers[exercise.id]?.trim()}
+                                                    className="rounded-2xl border border-white/10 bg-black/15 px-4 py-2 text-sm font-medium text-text transition hover:bg-black/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    {previewLoadingExerciseId === exercise.id ? "Выполняем..." : "Выполнить запрос"}
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {previewErrors[exercise.id] && (
+                                            <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                                                {previewErrors[exercise.id]}
+                                            </div>
+                                        )}
+
+                                        {!currentAttempt.finishedAt && previewResults[exercise.id] && (
+                                            <div className="mt-4 rounded-2xl border border-white/8 bg-[#0f1720] p-4">
+                                                <p className="mb-3 text-sm font-medium text-text/70">{previewResults[exercise.id].message}</p>
+                                                {previewResults[exercise.id].errorDetails ? (
+                                                    <p className="text-sm text-red-300">{previewResults[exercise.id].errorDetails}</p>
+                                                ) : (
+                                                    <div className="overflow-x-auto">
+                                                        <table className="min-w-full text-left text-sm text-text">
+                                                            <thead className="border-b border-white/10">
+                                                            <tr>
+                                                                {previewResults[exercise.id].columnNames.map((column) => (
+                                                                    <th key={column} className="px-3 py-2 font-medium text-text/70">
+                                                                        {column}
+                                                                    </th>
+                                                                ))}
+                                                            </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                            {previewResults[exercise.id].userRows.map((row, rowIndex) => (
+                                                                <tr key={`${exercise.id}-${rowIndex}`} className="border-b border-white/5">
+                                                                    {row.map((cell, cellIndex) => (
+                                                                        <td key={`${exercise.id}-${rowIndex}-${cellIndex}`} className="px-3 py-2 text-text/80">
+                                                                            {cell}
+                                                                        </td>
+                                                                    ))}
+                                                                </tr>
+                                                            ))}
+                                                            {previewResults[exercise.id].userRows.length === 0 && (
+                                                                <tr>
+                                                                    <td
+                                                                        colSpan={Math.max(previewResults[exercise.id].columnNames.length, 1)}
+                                                                        className="px-3 py-4 text-center text-text/50"
+                                                                    >
+                                                                        Запрос выполнен, но не вернул строк.
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {currentAttempt.finishedAt && myResults?.isResultsReleased && solution?.result && (
                                             <div
                                                 className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
@@ -750,15 +844,6 @@ export const ExamMode = () => {
                                                 }`}
                                             >
                                                 {solution.result}
-                                            </div>
-                                        )}
-
-                                        {currentAttempt.finishedAt && myResults?.isResultsReleased && solution && !solution.isCorrect && (
-                                            <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                                                <p className="mb-2 text-sm font-medium text-text/70">Правильный ответ</p>
-                                                <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-sm text-text">
-                                                    {exercise.correctAnswer}
-                                                </pre>
                                             </div>
                                         )}
                                     </article>

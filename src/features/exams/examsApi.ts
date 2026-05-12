@@ -4,6 +4,7 @@ import type { Exercise } from "../exercises/exercisesApi.ts";
 
 export interface DeploymentInfoDto {
     id: number;
+    connectionName: string;
     dbType: string;
     provider: string;
 }

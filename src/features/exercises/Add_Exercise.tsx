@@ -189,7 +189,7 @@ export const Add_Exercise = () => {
 
     const isFormValid = title.trim() && correctAnswer.trim() && effectiveDatabaseMetaId !== 0;
     const selectedDbMeta = databaseMetas.find((m) => m.id === effectiveDatabaseMetaId);
-    const deployments = selectedDbMeta?.deployments?.filter((d) => d.isDeployed) ?? [];
+    const deployments = selectedDbMeta?.deployments ?? [];
     const effectiveTestDeploymentId = testDeploymentId || deployments[0]?.id || 0;
 
     return (
@@ -325,7 +325,7 @@ export const Add_Exercise = () => {
                                             >
                                                 {deployments.map((deployment) => (
                                                     <option key={deployment.id} value={deployment.id}>
-                                                        {deployment.dbMeta?.dbType} · {deployment.physicaDatabaseName}
+                                                        {deployment.dbMeta?.name ?? "Подключение"} · {deployment.dbMeta?.dbType ?? "СУБД"}
                                                     </option>
                                                 ))}
                                             </select>
