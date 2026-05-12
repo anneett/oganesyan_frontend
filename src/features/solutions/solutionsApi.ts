@@ -23,6 +23,7 @@ export interface CreateSolutionRequest {
 
 export interface ExerciseStatsDto {
     exerciseId: number;
+    databaseMetaId: number;
     exerciseTitle: string;
     totalAttempts: number;
     uniqueUsers: number;

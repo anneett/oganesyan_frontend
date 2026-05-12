@@ -1,4 +1,4 @@
-import { useGetExercisesStatsQuery, useGetUsersStatsQuery } from './solutionsApi.ts';
+import { useGetExercisesStatsQuery, useGetUsersStatsQuery } from './solutionsApi';
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
@@ -12,9 +12,11 @@ export function Solutions() {
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [sortSuccess, setSortSuccess] = useState<SortSuccess>('default');
     const [sortAttempts, setSortAttempts] = useState<SortAttempts>('default');
+
     const [selectedDatabaseMetaId, setSelectedDatabaseMetaId] = useState<number | null>(null);
 
     const { data: databases = [] } = useGetDatabaseMetasQuery();
+
     const { data: exerciseStats, isLoading: loadingExercises, error: errorExercises } = useGetExercisesStatsQuery(
         selectedDatabaseMetaId ? { databaseMetaId: selectedDatabaseMetaId } : undefined,
     );
@@ -144,7 +146,7 @@ export function Solutions() {
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-text mb-2">Статистика решений</h1>
                     <p className="text-text/50">
@@ -155,33 +157,48 @@ export function Solutions() {
                     </p>
                 </div>
 
-                <button
-                    onClick={() => {
-                        setShowUserStats(!showUserStats);
-                        setSearch("");
-                    }}
-                    className={`px-5 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                        showUserStats
-                            ? "bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30"
-                            : "bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30"
-                    }`}
-                >
-                    {showUserStats ? (
-                        <>
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            По заданиям ({exerciseStats?.length || 0})
-                        </>
-                    ) : (
-                        <>
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            По пользователям ({userStats?.length || 0})
-                        </>
-                    )}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                        value={selectedDatabaseMetaId ?? ""}
+                        onChange={(event) => setSelectedDatabaseMetaId(event.target.value ? Number(event.target.value) : null)}
+                        className="px-4 py-3 bg-background border border-secondary/30 rounded-xl text-text focus:outline-none focus:border-accent"
+                    >
+                        <option value="">По всем базам данных</option>
+                        {databases.map((database) => (
+                            <option key={database.id} value={database.id}>
+                                {database.logicalName}
+                            </option>
+                        ))}
+                    </select>
+
+                    <button
+                        onClick={() => {
+                            setShowUserStats(!showUserStats);
+                            setSearch("");
+                        }}
+                        className={`px-5 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                            showUserStats
+                                ? "bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30"
+                                : "bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30"
+                        }`}
+                    >
+                        {showUserStats ? (
+                            <>
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                По заданиям ({exerciseStats?.length || 0})
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                По пользователям ({userStats?.length || 0})
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
@@ -405,193 +422,193 @@ export function Solutions() {
                         )}
                     </div>
                 </div>
-            </div>
 
-            {!isFiltersOpen && hasActiveFilters && (
-                <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-secondary/5 rounded-lg border border-secondary/20">
-                    <span className="text-xs text-text/50">Сортировка:</span>
+                {!isFiltersOpen && hasActiveFilters && (
+                    <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-secondary/5 rounded-lg border border-secondary/20">
+                        <span className="text-xs text-text/50">Сортировка:</span>
 
-                    {sortSuccess !== 'default' && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                            sortSuccess === 'high-first' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                        }`}>
-                            {sortSuccess === 'high-first' ? '↑ Сначала успешные' : '↓ Сначала неуспешные'}
-                            <button onClick={() => setSortSuccess('default')} className="hover:opacity-70">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </span>
-                    )}
+                        {sortSuccess !== 'default' && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                                sortSuccess === 'high-first' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
+                                {sortSuccess === 'high-first' ? '↑ Сначала успешные' : '↓ Сначала неуспешные'}
+                                <button onClick={() => setSortSuccess('default')} className="hover:opacity-70">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </span>
+                        )}
 
-                    {sortAttempts !== 'default' && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                            sortAttempts === 'most-first' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
-                        }`}>
-                            {sortAttempts === 'most-first' ? '↑ Больше попыток' : '↓ Меньше попыток'}
-                            <button onClick={() => setSortAttempts('default')} className="hover:opacity-70">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </span>
-                    )}
-                </div>
-            )}
+                        {sortAttempts !== 'default' && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                                sortAttempts === 'most-first' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                            }`}>
+                                {sortAttempts === 'most-first' ? '↑ Больше попыток' : '↓ Меньше попыток'}
+                                <button onClick={() => setSortAttempts('default')} className="hover:opacity-70">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </span>
+                        )}
+                    </div>
+                )}
 
-            {search && (
-                <p className="text-text/50 text-sm mb-4">
-                    Найдено: {showUserStats ? sortedUsers.length : sortedExercises.length} из {showUserStats ? userStats?.length : exerciseStats?.length}
-                </p>
-            )}
+                {search && (
+                    <p className="text-text/50 text-sm mb-4">
+                        Найдено: {showUserStats ? sortedUsers.length : sortedExercises.length} из {showUserStats ? userStats?.length : exerciseStats?.length}
+                    </p>
+                )}
 
-            <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                        <tr className="bg-secondary/10 border-b border-secondary/20">
-                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                #
-                            </th>
-                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                {showUserStats ? "Пользователь" : "Задание"}
-                            </th>
-                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                Попыток
-                            </th>
-                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                {showUserStats ? "Заданий" : "Участников"}
-                            </th>
-                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
-                                Верных
-                            </th>
-                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider min-w-[200px]">
-                                Успешность
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody className="divide-y divide-secondary/10">
-                        {showUserStats ? (
-                            sortedUsers.map((stat, index) => (
-                                <tr key={stat.userId} className="hover:bg-secondary/5 transition-colors">
-                                    <td className="px-4 py-4">
+                <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                            <tr className="bg-secondary/10 border-b border-secondary/20">
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    #
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    {showUserStats ? "Пользователь" : "Задание"}
+                                </th>
+                                {!showUserStats && (
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider hidden md:table-cell">
+                                        База данных
+                                    </th>
+                                )}
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    Попыток
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    {showUserStats ? "Заданий" : "Участников"}
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                    Верных
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider min-w-[200px]">
+                                    Успешность
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody className="divide-y divide-secondary/10">
+                            {showUserStats ? (
+                                sortedUsers.map((stat, index) => (
+                                    <tr key={stat.userId} className="hover:bg-secondary/5 transition-colors">
+                                        <td className="px-4 py-4">
                                             <span className="text-text/40 font-mono text-sm">
                                                 {index + 1}
                                             </span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center">
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full flex items-center justify-center">
                                                     <span className="text-xs font-bold text-text uppercase">
                                                         {stat.userLogin.charAt(0)}
                                                     </span>
+                                                </div>
+                                                <Link to={`/admin/users/${stat.userId}`} className="font-medium text-text transition hover:text-accent">
+                                                    {stat.userLogin}
+                                                </Link>
                                             </div>
-                                            <Link to={`/users/${stat.userId}`} className="font-medium text-text transition hover:text-accent">
-                                                {stat.userLogin}
-                                            </Link>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-text/70">{stat.totalAttempts}</span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-text/70">{stat.uniqueExercises}</span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-green-400 font-medium">{stat.correctAnswers}</span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-grow h-2 bg-secondary/20 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(stat.percentCorrect)}`}
-                                                    style={{ width: `${stat.percentCorrect}%` }}
-                    />
-                </div>
-
-                <select
-                    value={selectedDatabaseMetaId ?? ""}
-                    onChange={(event) => setSelectedDatabaseMetaId(event.target.value ? Number(event.target.value) : null)}
-                    className="px-4 py-3 bg-background border border-secondary/30 rounded-xl text-text focus:outline-none focus:border-accent"
-                >
-                    <option value="">Все БД</option>
-                    {databases.map((database) => (
-                        <option key={database.id} value={database.id}>
-                            {database.logicalName}
-                        </option>
-                    ))}
-                </select>
-                                            <span className={`px-2 py-1 text-sm font-bold rounded-lg min-w-[60px] text-center ${getPercentColor(stat.percentCorrect)}`}>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className="text-text/70">{stat.totalAttempts}</span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className="text-text/70">{stat.uniqueExercises}</span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className="text-green-400 font-medium">{stat.correctAnswers}</span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-grow h-2 bg-secondary/20 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(stat.percentCorrect)}`}
+                                                        style={{ width: `${stat.percentCorrect}%` }}
+                                                    />
+                                                </div>
+                                                <span className={`px-2 py-1 text-sm font-bold rounded-lg min-w-[60px] text-center ${getPercentColor(stat.percentCorrect)}`}>
                                                     {stat.percentCorrect}%
                                                 </span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            sortedExercises.map((stat, index) => (
-                                <tr key={stat.exerciseId} className="hover:bg-secondary/5 transition-colors">
-                                    <td className="px-4 py-4">
-                                            <span className="text-text/40 font-mono text-sm">
-                                                {index + 1}
-                                            </span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-                                                    <span className="text-xs font-bold text-primary">
-                                                        #{stat.exerciseId}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                sortedExercises.map((stat, index) => {
+                                    const dbName = databases.find(db => db.id === stat.databaseMetaId)?.logicalName || "Неизвестно";
+                                    return (
+                                        <tr key={stat.exerciseId} className="hover:bg-secondary/5 transition-colors">
+                                            <td className="px-4 py-4">
+                                                <span className="text-text/40 font-mono text-sm">
+                                                    {index + 1}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                                                        <span className="text-xs font-bold text-primary">
+                                                            #{stat.exerciseId}
+                                                        </span>
+                                                    </div>
+                                                    <Link to={`/exercise/${stat.exerciseId}`} className="font-medium text-text hover:text-accent transition-colors">
+                                                        {stat.exerciseTitle}
+                                                    </Link>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 hidden md:table-cell">
+                                                <span className="px-2 py-1 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-xs font-medium">
+                                                    {dbName}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="text-text/70">{stat.totalAttempts}</span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="text-text/70">{stat.uniqueUsers}</span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="text-green-400 font-medium">{stat.correctAnswers}</span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-grow h-2 bg-secondary/20 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(stat.percentCorrect)}`}
+                                                            style={{ width: `${stat.percentCorrect}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className={`px-2 py-1 text-sm font-bold rounded-lg min-w-[60px] text-center ${getPercentColor(stat.percentCorrect)}`}>
+                                                        {stat.percentCorrect}%
                                                     </span>
-                                            </div>
-                                            <span className="font-medium text-text">
-                                                    {stat.exerciseTitle}
-                                                </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-text/70">{stat.totalAttempts}</span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-text/70">{stat.uniqueUsers}</span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-green-400 font-medium">{stat.correctAnswers}</span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-grow h-2 bg-secondary/20 rounded-full overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full transition-all duration-500 ${getProgressBarColor(stat.percentCorrect)}`}
-                                                    style={{ width: `${stat.percentCorrect}%` }}
-                                                />
-                                            </div>
-                                            <span className={`px-2 py-1 text-sm font-bold rounded-lg min-w-[60px] text-center ${getPercentColor(stat.percentCorrect)}`}>
-                                                    {stat.percentCorrect}%
-                                                </span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {((showUserStats && sortedUsers.length === 0) || (!showUserStats && sortedExercises.length === 0)) && (
-                    <div className="text-center py-12">
-                        <svg className="w-12 h-12 text-text/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        <p className="text-text/50">
-                            {search
-                                ? "Ничего не найдено"
-                                : showUserStats
-                                    ? "Нет данных по пользователям"
-                                    : "Нет данных по заданиям"
-                            }
-                        </p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+
+                    {((showUserStats && sortedUsers.length === 0) || (!showUserStats && sortedExercises.length === 0)) && (
+                        <div className="text-center py-12">
+                            <svg className="w-12 h-12 text-text/20 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <p className="text-text/50">
+                                {search
+                                    ? "Ничего не найдено"
+                                    : showUserStats
+                                        ? "Нет данных по пользователям"
+                                        : "Нет данных по заданиям"
+                                }
+                            </p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

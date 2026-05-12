@@ -1,6 +1,5 @@
 import { skipToken } from "@reduxjs/toolkit/query";
-import { useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { API_ORIGIN } from "../../app/baseQuery";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
@@ -39,8 +38,19 @@ export function Exercise() {
     const { data: allExercises = [] } = useGetExercisesQuery();
     const { data: stats } = useGetExerciseStatsQuery(exerciseId);
     const { data: databaseMeta } = useGetDatabaseMetaByIdQuery(exercise?.databaseMetaId ?? skipToken);
-    const [createSolution, { data: solution, isLoading: isSubmitting }] = useCreateSolutionMutation();
-    const [testQuery, { data: previewResult, isLoading: isPreviewLoading }] = useTestQueryMutation();
+
+    const [createSolutionMutation, createSolution] = useCreateSolutionMutation();
+    const [testQueryMutation, testQuery] = useTestQueryMutation();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        setAnswer("");
+        setShowCorrectAnswer(false);
+        setSubmitError(null);
+        setPreviewError(null);
+        testQuery.reset();
+        createSolution.reset();
+    }, [exerciseId]);
 
     const deployments = useMemo(() => databaseMeta?.deployments ?? [], [databaseMeta]);
     const effectiveDeploymentId = deploymentId || deployments[0]?.id || 0;
@@ -90,16 +100,14 @@ export function Exercise() {
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
-
         if (!effectiveDeploymentId) {
             setSubmitError("Сначала выберите подключение к базе данных.");
             return;
         }
-
         try {
             setSubmitError(null);
             setShowCorrectAnswer(false);
-            await createSolution({
+            await createSolutionMutation({
                 exerciseId: exercise.id,
                 deploymentId: effectiveDeploymentId,
                 userAnswer: answer,
@@ -114,10 +122,9 @@ export function Exercise() {
             setPreviewError("Сначала выберите подключение к базе данных.");
             return;
         }
-
         try {
             setPreviewError(null);
-            await testQuery({
+            await testQueryMutation({
                 deploymentId: effectiveDeploymentId,
                 query: answer,
             }).unwrap();
@@ -249,63 +256,63 @@ export function Exercise() {
                                 <button
                                     type="button"
                                     onClick={handlePreview}
-                                    disabled={isPreviewLoading || !answer.trim() || deployments.length === 0}
+                                    disabled={testQuery.isLoading || !answer.trim() || deployments.length === 0}
                                     className="rounded-2xl border border-white/10 bg-black/15 px-5 py-3 font-semibold text-text transition hover:bg-black/20 disabled:cursor-not-allowed disabled:opacity-55"
                                 >
-                                    {isPreviewLoading ? "Выполняем..." : "Выполнить запрос"}
+                                    {testQuery.isLoading ? "Выполняем..." : "Выполнить запрос"}
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting || !answer.trim() || deployments.length === 0}
+                                    disabled={createSolution.isLoading || !answer.trim() || deployments.length === 0}
                                     className="rounded-2xl bg-gradient-to-r from-primary to-accent px-5 py-3 font-semibold text-background transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-55"
                                 >
-                                    {isSubmitting ? "Проверяем ответ..." : "Отправить решение"}
+                                    {createSolution.isLoading ? "Проверяем ответ..." : "Отправить решение"}
                                 </button>
                             </div>
                         </form>
                     </div>
 
-                    {previewResult && (
+                    {testQuery.data && (
                         <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                             <h2 className="text-2xl font-semibold text-text">Результат выполнения</h2>
-                            <p className="mt-2 text-sm text-text/60">{previewResult.message}</p>
+                            <p className="mt-2 text-sm text-text/60">{testQuery.data.message}</p>
 
-                            {previewResult.errorDetails ? (
+                            {testQuery.data.errorDetails ? (
                                 <div className="mt-4 rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                                    {previewResult.errorDetails}
+                                    {testQuery.data.errorDetails}
                                 </div>
                             ) : (
                                 <div className="mt-5 overflow-x-auto rounded-2xl border border-white/8 bg-[#0f1720]">
                                     <table className="min-w-full text-left text-sm text-text">
                                         <thead className="border-b border-white/10 bg-black/20">
-                                            <tr>
-                                                {previewResult.columnNames.map((column) => (
-                                                    <th key={column} className="px-4 py-3 font-medium text-text/75">
-                                                        {column}
-                                                    </th>
-                                                ))}
-                                            </tr>
+                                        <tr>
+                                            {testQuery.data.columnNames.map((column: string) => (
+                                                <th key={column} className="px-4 py-3 font-medium text-text/75">
+                                                    {column}
+                                                </th>
+                                            ))}
+                                        </tr>
                                         </thead>
                                         <tbody>
-                                            {previewResult.userRows.map((row, rowIndex) => (
-                                                <tr key={`${rowIndex}-${row.join("|")}`} className="border-b border-white/5">
-                                                    {row.map((cell, cellIndex) => (
-                                                        <td key={`${rowIndex}-${cellIndex}`} className="px-4 py-3 text-text/80">
-                                                            {cell}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                            {previewResult.userRows.length === 0 && (
-                                                <tr>
-                                                    <td
-                                                        colSpan={Math.max(previewResult.columnNames.length, 1)}
-                                                        className="px-4 py-6 text-center text-text/50"
-                                                    >
-                                                        Запрос выполнен, но не вернул строк.
+                                        {testQuery.data.userRows.map((row: string[], rowIndex: number) => (
+                                            <tr key={`${rowIndex}-${row.join("|")}`} className="border-b border-white/5">
+                                                {row.map((cell: string, cellIndex: number) => (
+                                                    <td key={`${rowIndex}-${cellIndex}`} className="px-4 py-3 text-text/80">
+                                                        {cell}
                                                     </td>
-                                                </tr>
-                                            )}
+                                                ))}
+                                            </tr>
+                                        ))}
+                                        {testQuery.data.userRows.length === 0 && (
+                                            <tr>
+                                                <td
+                                                    colSpan={Math.max(testQuery.data.columnNames.length, 1)}
+                                                    className="px-4 py-6 text-center text-text/50"
+                                                >
+                                                    Запрос выполнен, но не вернул строк.
+                                                </td>
+                                            </tr>
+                                        )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -313,23 +320,23 @@ export function Exercise() {
                         </div>
                     )}
 
-                    {solution && (
+                    {createSolution.data && (
                         <div
                             className={`rounded-[2rem] border p-6 shadow-xl ${
-                                solution.isCorrect
+                                createSolution.data.isCorrect
                                     ? "border-green-500/25 bg-green-500/10 shadow-green-950/10"
                                     : "border-red-500/25 bg-red-500/10 shadow-red-950/10"
                             }`}
                         >
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
-                                    <h2 className={`text-2xl font-semibold ${solution.isCorrect ? "text-green-200" : "text-red-200"}`}>
-                                        {solution.isCorrect ? "Ответ верный" : "Ответ не совпал"}
+                                    <h2 className={`text-2xl font-semibold ${createSolution.data.isCorrect ? "text-green-200" : "text-red-200"}`}>
+                                        {createSolution.data.isCorrect ? "Ответ верный" : "Ответ не совпал"}
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-text/70">{solution.result}</p>
+                                    <p className="mt-2 text-sm leading-6 text-text/70">{createSolution.data.message}</p>
                                 </div>
 
-                                {!solution.isCorrect && (
+                                {!createSolution.data.isCorrect && (
                                     <button
                                         type="button"
                                         onClick={() => setShowCorrectAnswer((prev) => !prev)}
@@ -340,7 +347,7 @@ export function Exercise() {
                                 )}
                             </div>
 
-                            {showCorrectAnswer && !solution.isCorrect && (
+                            {showCorrectAnswer && !createSolution.data.isCorrect && (
                                 <div className="mt-5 rounded-2xl border border-white/8 bg-black/15 px-4 py-4">
                                     <p className="mb-2 text-sm font-medium text-text/70">Правильный SQL:</p>
                                     <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-sm text-text">
@@ -354,19 +361,12 @@ export function Exercise() {
 
                 <div className="space-y-6">
                     <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
-                        <h2 className="text-2xl font-semibold text-text">Описание задания</h2>
-                        <p className="mt-4 text-sm leading-7 text-text/65">
-                            Для решения используйте структуру выбранной учебной базы данных и ориентируйтесь на ожидаемый результат.
-                        </p>
-                    </div>
-
-                    <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         <h2 className="text-2xl font-semibold text-text">ERD-диаграмма</h2>
                         {erdImageUrl ? (
                             <img
                                 src={erdImageUrl}
                                 alt={`ERD ${databaseMeta?.logicalName ?? ""}`}
-                                className="mt-4 w-full rounded-3xl border border-white/8 object-cover"
+                                className="mt-4 w-full rounded-3xl border border-white/8 object-cover bg-[#0f1720]"
                             />
                         ) : (
                             <div className="mt-4 rounded-3xl border border-dashed border-white/10 bg-black/15 px-4 py-10 text-center text-sm text-text/55">

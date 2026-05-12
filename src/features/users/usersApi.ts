@@ -30,6 +30,7 @@ export interface UserSolution {
     isCorrect: boolean;
     submittedAt: string;
     result: string | null;
+    isExam: boolean;
 }
 
 export const usersApi = createApi({
