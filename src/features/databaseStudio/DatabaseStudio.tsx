@@ -17,6 +17,7 @@ import {
     useUpdateDatabaseMetaMutation,
     useUpdateDbMetaMutation,
 } from "../databaseMetas/databaseMetasApi";
+import { useSearchParams } from "react-router-dom";
 
 type StudioTab = "connections" | "databases";
 type NoticeTone = "success" | "error" | "info";
@@ -58,7 +59,6 @@ const formatDateTime = (value?: string) => {
 };
 
 export const DatabaseStudio = () => {
-    const [activeTab, setActiveTab] = useState<StudioTab>("connections");
     const [editingConnectionId, setEditingConnectionId] = useState<number | null>(null);
     const [editingDatabaseId, setEditingDatabaseId] = useState<number | null>(null);
 
@@ -86,6 +86,9 @@ export const DatabaseStudio = () => {
     const [testDbConnection, { isLoading: isTestingConnection }] = useTestDbConnectionMutation();
     const [createDatabaseMeta, { isLoading: isCreatingDatabase }] = useCreateDatabaseMetaMutation();
     const [updateDatabaseMeta, { isLoading: isUpdatingDatabase }] = useUpdateDatabaseMetaMutation();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const activeTab = (searchParams.get("tab") as StudioTab) || "connections";
 
     const stats = useMemo(
         () => ({
@@ -182,7 +185,7 @@ export const DatabaseStudio = () => {
     };
 
     const beginEditConnection = (connection: DbMeta) => {
-        setActiveTab("connections");
+        setSearchParams({ tab: "connections" });
         setEditingConnectionId(connection.id);
         setConnectionForm({
             name: connection.name,
@@ -196,7 +199,7 @@ export const DatabaseStudio = () => {
     };
 
     const beginEditDatabase = (database: DatabaseMeta) => {
-        setActiveTab("databases");
+        setSearchParams({ tab: "databases" });
         setEditingDatabaseId(database.id);
         setDatabaseForm({
             logicalName: database.logicalName,
@@ -264,7 +267,7 @@ export const DatabaseStudio = () => {
                         <button
                             key={tab.id}
                             type="button"
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => setSearchParams({ tab: tab.id })}
                             className={`rounded-[1.75rem] border p-5 text-left transition ${
                                 isActive
                                     ? "border-accent/35 bg-accent/10 shadow-lg shadow-accent/5"

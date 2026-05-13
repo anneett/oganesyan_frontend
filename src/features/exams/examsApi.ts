@@ -160,6 +160,10 @@ export const examsApi = createApi({
             query: () => "/Exams/active",
             providesTags: ["Exams"],
         }),
+        getExams: builder.query<Exam[], void>({
+            query: () => "/Exams/all",
+            providesTags: ["Exams"],
+        }),
         startExam: builder.mutation<ExamAttempt, ExamStartRequest>({
             query: (payload) => ({
                 url: "/Exams/start",
@@ -223,6 +227,7 @@ export const examsApi = createApi({
 
 export const {
     useGetActiveExamsQuery,
+    useGetExamsQuery,
     useCreateExamMutation,
     useStartExamMutation,
     useFinishExamMutation,

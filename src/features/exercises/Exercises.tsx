@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
-import { useGetUserStatsQuery } from "../users/usersApi";
+import { useGetDatabaseMetasQuery, useGetDbMetasQuery } from "../databaseMetas/databaseMetasApi";
+import { useGetUserStatsQuery, useGetUsersQuery, useGetUserProfileQuery } from "../users/usersApi";
 import { useGetExercisesQuery } from "./exercisesApi";
+import { useGetExamsQuery } from "../exams/examsApi";
 
 type FilterStatus = "all" | "solved" | "unsolved";
 type SortOption = "default" | "easy-first" | "hard-first";
@@ -19,6 +20,10 @@ export function Exercises() {
         selectedDatabaseMetaId ? { databaseMetaId: selectedDatabaseMetaId } : undefined,
     );
     const { data: userStats, isLoading: loadingStats } = useGetUserStatsQuery();
+    const { data: users = [] } = useGetUsersQuery();
+    const { data: user } = useGetUserProfileQuery();
+    const { data: exams = [] } = useGetExamsQuery();
+    const { data: dbMetas = [] } = useGetDbMetasQuery();
 
     const solvedExerciseIds = useMemo(() => {
         return new Set((userStats ?? []).filter((solution) => solution.isCorrect).map((solution) => solution.exerciseId));
@@ -69,6 +74,12 @@ export function Exercises() {
         return configs[difficulty] || configs[0];
     };
 
+    const activeUsersCount = users.filter(u => !u.inArchive).length;
+    const adminCount = users.filter(u => !u.inArchive && u.isAdmin).length;
+    const totalConnections = dbMetas.length;
+    const totalExams = exams.length;
+    const unreleasedResultsCount = exams.filter(e => !e.isResultsReleased).length;
+
     if (isLoading || loadingStats) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -93,17 +104,107 @@ export function Exercises() {
     return (
         <div className="min-h-screen bg-background">
             <main className="max-w-6xl mx-auto px-4 py-8">
+                {user?.isAdmin && (
+                    <div className="mb-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+                        <Link to="/admin/databases?tab=connections" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-blue-600/10 to-blue-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <h3 className="text-xl font-bold text-text group-hover:text-blue-200 transition-colors">Подключения</h3>
+                                <p className="mt-1 text-sm text-text/50">Доступные подключения</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <span className="text-sm font-medium text-blue-300">{totalConnections} подключений</span>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <Link to="/admin/databases?tab=databases" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-indigo-600/10 to-indigo-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <h3 className="text-xl font-bold text-text group-hover:text-indigo-200 transition-colors">Базы данных</h3>
+                                <p className="mt-1 text-sm text-text/50">Логические схемы (Мета)</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <span className="text-sm font-medium text-indigo-300">{databases.length} баз данных</span>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-indigo-500/20 group-hover:text-indigo-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <Link to="/admin/exams" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-purple-600/10 to-purple-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <h3 className="text-xl font-bold text-text group-hover:text-purple-200 transition-colors">Контрольные</h3>
+                                <p className="mt-1 text-sm text-text/50">Назначение и управление</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <span className="text-sm font-medium text-purple-300">Всего: {totalExams} <span className="mx-1 text-purple-300/50">•</span> Неопубликованных: {unreleasedResultsCount}</span>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-purple-500/20 group-hover:text-purple-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <Link to="/add-exercise" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-orange-600/10 to-orange-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30 hover:shadow-lg hover:shadow-orange-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <h3 className="text-xl font-bold text-text group-hover:text-orange-200 transition-colors">Конструктор задач</h3>
+                                <p className="mt-1 text-sm text-text/50">Создание и загрузка</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <div className="text-sm font-medium text-orange-300 flex flex-wrap gap-x-2">
+                                    {databases.slice(0, 2).map(db => (
+                                        <span key={db.id}>{db.logicalName}: {exercises?.filter(e => e.databaseMetaId === db.id).length || 0}</span>
+                                    ))}
+                                    {databases.length > 2 && <span>...</span>}
+                                </div>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-orange-500/20 group-hover:text-orange-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <Link to="/solutions" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-emerald-600/10 to-emerald-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <h3 className="text-xl font-bold text-text group-hover:text-emerald-200 transition-colors">Статистика</h3>
+                                <p className="mt-1 text-sm text-text/50">Успеваемость и метрики</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <span className="text-sm font-medium text-emerald-300">Заданий: {totalExercises} <span className="mx-1 text-emerald-300/50">•</span> Пользователей: {activeUsersCount}</span>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-emerald-500/20 group-hover:text-emerald-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <Link to="/users" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-rose-600/10 to-rose-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-rose-500/30 hover:shadow-lg hover:shadow-rose-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <div className="flex justify-between items-start">
+                                    <h3 className="text-xl font-bold text-text group-hover:text-rose-200 transition-colors">Пользователи</h3>
+                                </div>
+                                <p className="mt-1 text-sm text-text/50">Управление учетными записями</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <span className="text-sm font-medium text-rose-300">Действующих: {activeUsersCount} <span className="mx-1 text-rose-300/50">•</span> Админов: {adminCount}</span>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-rose-500/20 group-hover:text-rose-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 rounded-xl p-4">
-                        <p className="text-text/60 text-sm">Всего</p>
+                        <p className="text-text/60 text-sm">Всего заданий</p>
                         <p className="text-3xl font-bold text-primary">{totalExercises}</p>
                     </div>
                     <div className="bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 rounded-xl p-4">
-                        <p className="text-text/60 text-sm">Решено</p>
+                        <p className="text-text/60 text-sm">Решено вами</p>
                         <p className="text-3xl font-bold text-green-400">{solvedCount}</p>
                     </div>
                     <div className="bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 rounded-xl p-4">
-                        <p className="text-text/60 text-sm">Прогресс</p>
+                        <p className="text-text/60 text-sm">Ваш прогресс</p>
                         <p className="text-3xl font-bold text-accent">{progressPercent}%</p>
                     </div>
                 </div>
