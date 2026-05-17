@@ -9,9 +9,9 @@ import type { BatchUploadResult } from "./exercisesApi";
 type ExerciseTab = "single" | "batch";
 
 const difficultyOptions = [
-    { value: 0 as const, label: "Легкая", idle: "border-green-500/25 bg-green-500/10 text-green-300", active: "border-green-400 bg-green-500/20 text-green-200" },
-    { value: 1 as const, label: "Средняя", idle: "border-yellow-500/25 bg-yellow-500/10 text-yellow-300", active: "border-yellow-400 bg-yellow-500/20 text-yellow-100" },
-    { value: 2 as const, label: "Сложная", idle: "border-red-500/25 bg-red-500/10 text-red-300", active: "border-red-400 bg-red-500/20 text-red-100" },
+    { value: 1 as const, label: "Легкая", idle: "border-green-500/25 bg-green-500/10 text-green-300", active: "border-green-400 bg-green-500/20 text-green-200" },
+    { value: 2 as const, label: "Средняя", idle: "border-yellow-500/25 bg-yellow-500/10 text-yellow-300", active: "border-yellow-400 bg-yellow-500/20 text-yellow-100" },
+    { value: 3 as const, label: "Сложная", idle: "border-red-500/25 bg-red-500/10 text-red-300", active: "border-red-400 bg-red-500/20 text-red-100" },
 ];
 
 const tabItems: { id: ExerciseTab; label: string; subtitle: string }[] = [
@@ -25,7 +25,7 @@ export const Add_Exercise = () => {
     const [activeTab, setActiveTab] = useState<ExerciseTab>("single");
 
     const [title, setTitle] = useState("");
-    const [difficulty, setDifficulty] = useState<0 | 1 | 2>(0);
+    const [difficulty, setDifficulty] = useState<1 | 2 | 3>(1);
     const [databaseMetaId, setDatabaseMetaId] = useState<number>(preselectedDatabaseMetaId);
     const [correctAnswer, setCorrectAnswer] = useState("");
     const [testDeploymentId, setTestDeploymentId] = useState<number>(0);
@@ -34,8 +34,9 @@ export const Add_Exercise = () => {
     const [isTestLoading, setIsTestLoading] = useState(false);
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [fileInputKey, setFileInputKey] = useState(0);
     const [batchDatabaseMetaId, setBatchDatabaseMetaId] = useState<number>(preselectedDatabaseMetaId);
-    const [batchDefaultDifficulty, setBatchDefaultDifficulty] = useState<0 | 1 | 2>(1);
+    const [batchDefaultDifficulty, setBatchDefaultDifficulty] = useState<1 | 2 | 3>(2);
     const [uploadResult, setUploadResult] = useState<BatchUploadResult | null>(null);
 
     const [message, setMessage] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export const Add_Exercise = () => {
             setMessageTone("success");
             setMessage("Задание успешно создано и привязано к выбранной логической БД.");
             setTitle("");
-            setDifficulty(0);
+            setDifficulty(1);
             setCorrectAnswer("");
         } catch (error) {
             setMessageTone("error");
@@ -105,6 +106,7 @@ export const Add_Exercise = () => {
                 setMessageTone("error");
                 setMessage("Поддерживается только формат JSON");
                 setSelectedFile(null);
+                setFileInputKey(prev => prev + 1);
                 return;
             }
             setSelectedFile(file);
@@ -164,11 +166,11 @@ export const Add_Exercise = () => {
     const downloadTemplate = () => {
         const template = {
             databaseMetaId: effectiveBatchDatabaseMetaId || 1,
-            defaultDifficulty: 1,
+            defaultDifficulty: 2,
             exercises: [
                 {
                     title: "Пример задания 1",
-                    difficulty: 2,
+                    difficulty: 1,
                     correctAnswer: "SELECT * FROM table_name WHERE condition;"
                 },
                 {
@@ -543,6 +545,7 @@ export const Add_Exercise = () => {
                                         JSON-файл с заданиями
                                     </label>
                                     <input
+                                        key={fileInputKey}
                                         type="file"
                                         accept=".json"
                                         onChange={handleFileChange}
@@ -580,7 +583,7 @@ export const Add_Exercise = () => {
                             <h2 className="text-2xl font-semibold text-text">Формат JSON</h2>
                             <div className="mt-4 space-y-3 text-sm text-text/60">
                                 <p>• <code className="text-accent">databaseMetaId</code> — ID логической БД (опционально)</p>
-                                <p>• <code className="text-accent">defaultDifficulty</code> — 0/1/2 (опционально)</p>
+                                <p>• <code className="text-accent">defaultDifficulty</code> — 1/2/3 (опционально)</p>
                                 <p>• <code className="text-accent">exercises</code> — массив заданий</p>
                                 <p>• <code className="text-accent">title</code> — название задания</p>
                                 <p>• <code className="text-accent">difficulty</code> — сложность (опционально)</p>
@@ -591,11 +594,11 @@ export const Add_Exercise = () => {
                                 <pre className="overflow-x-auto text-xs text-text/70">
 {`{
   "databaseMetaId": 1,
-  "defaultDifficulty": 1,
+  "defaultDifficulty": 2,
   "exercises": [
     {
       "title": "Золотые медали",
-      "difficulty": 2,
+      "difficulty": 1,
       "correctAnswer": "SELECT..."
     },
     {

@@ -71,7 +71,7 @@ export function Exercises() {
             { label: "Средняя", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
             { label: "Сложная", color: "bg-red-500/20 text-red-400 border-red-500/30" },
         ];
-        return configs[difficulty] || configs[0];
+        return configs[difficulty - 1] || configs[0];
     };
 
     const activeUsersCount = users.filter(u => !u.inArchive).length;
@@ -123,12 +123,30 @@ export function Exercises() {
                         <Link to="/admin/databases?tab=databases" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-indigo-600/10 to-indigo-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-900/20 flex flex-col justify-between min-h-[160px]">
                             <div>
                                 <h3 className="text-xl font-bold text-text group-hover:text-indigo-200 transition-colors">Базы данных</h3>
-                                <p className="mt-1 text-sm text-text/50">Логические схемы (Мета)</p>
+                                <p className="mt-1 text-sm text-text/50">Логические схемы</p>
                             </div>
                             <div className="flex items-end justify-between mt-4">
                                 <span className="text-sm font-medium text-indigo-300">{databases.length} баз данных</span>
                                 <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-indigo-500/20 group-hover:text-indigo-300 transition-colors">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </div>
+                            </div>
+                        </Link>
+
+                        <Link to="/add-exercise" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-orange-600/10 to-orange-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30 hover:shadow-lg hover:shadow-orange-900/20 flex flex-col justify-between min-h-[160px]">
+                            <div>
+                                <h3 className="text-xl font-bold text-text group-hover:text-orange-200 transition-colors">Добавление задач</h3>
+                                <p className="mt-1 text-sm text-text/50">Создание и загрузка</p>
+                            </div>
+                            <div className="flex items-end justify-between mt-4">
+                                <div className="text-sm font-medium text-orange-300 flex flex-wrap gap-x-2">
+                                    {databases.slice(0, 2).map(db => (
+                                        <span key={db.id}>{db.logicalName}: {exercises?.filter(e => e.databaseMetaId === db.id).length || 0}</span>
+                                    ))}
+                                    {databases.length > 2 && <span>...</span>}
+                                </div>
+                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-orange-500/20 group-hover:text-orange-300 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                 </div>
                             </div>
                         </Link>
@@ -142,24 +160,6 @@ export function Exercises() {
                                 <span className="text-sm font-medium text-purple-300">Всего: {totalExams} <span className="mx-1 text-purple-300/50">•</span> Неопубликованных: {unreleasedResultsCount}</span>
                                 <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-purple-500/20 group-hover:text-purple-300 transition-colors">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                </div>
-                            </div>
-                        </Link>
-
-                        <Link to="/add-exercise" className="group relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br from-orange-600/10 to-orange-900/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30 hover:shadow-lg hover:shadow-orange-900/20 flex flex-col justify-between min-h-[160px]">
-                            <div>
-                                <h3 className="text-xl font-bold text-text group-hover:text-orange-200 transition-colors">Конструктор задач</h3>
-                                <p className="mt-1 text-sm text-text/50">Создание и загрузка</p>
-                            </div>
-                            <div className="flex items-end justify-between mt-4">
-                                <div className="text-sm font-medium text-orange-300 flex flex-wrap gap-x-2">
-                                    {databases.slice(0, 2).map(db => (
-                                        <span key={db.id}>{db.logicalName}: {exercises?.filter(e => e.databaseMetaId === db.id).length || 0}</span>
-                                    ))}
-                                    {databases.length > 2 && <span>...</span>}
-                                </div>
-                                <div className="rounded-full bg-black/20 p-2 text-text/50 group-hover:bg-orange-500/20 group-hover:text-orange-300 transition-colors">
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                 </div>
                             </div>
                         </Link>
@@ -235,9 +235,9 @@ export function Exercises() {
                         className="rounded-xl border border-secondary/30 bg-background px-4 py-3 text-text focus:border-accent focus:outline-none"
                     >
                         <option value="">Любая сложность</option>
-                        <option value="0">Легкая</option>
-                        <option value="1">Средняя</option>
-                        <option value="2">Сложная</option>
+                        <option value="1">Легкая</option>
+                        <option value="2">Средняя</option>
+                        <option value="3">Сложная</option>
                     </select>
                 </div>
 

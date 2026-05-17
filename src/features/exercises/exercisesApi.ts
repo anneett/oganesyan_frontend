@@ -4,14 +4,14 @@ import { baseQuery } from "../../app/baseQuery";
 export interface Exercise {
     id: number;
     title: string;
-    difficulty: 0 | 1 | 2;
+    difficulty: 1 | 2 | 3;
     databaseMetaId: number;
     correctAnswer: string;
 }
 
 export interface CreateExerciseRequest {
     title: string;
-    difficulty: 0 | 1 | 2;
+    difficulty: 1 | 2 | 3;
     databaseMetaId: number;
     correctAnswer: string;
 }
@@ -45,13 +45,13 @@ export interface QueryResult {
 
 export interface BatchExerciseItem {
     title: string;
-    difficulty?: 0 | 1 | 2;
+    difficulty?: 1 | 2 | 3;
     correctAnswer: string;
 }
 
 export interface BatchExerciseUpload {
     databaseMetaId: number;
-    defaultDifficulty?: 0 | 1 | 2;
+    defaultDifficulty?: 1 | 2 | 3;
     exercises: BatchExerciseItem[];
 }
 

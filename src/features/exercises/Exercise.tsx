@@ -96,7 +96,7 @@ export function Exercise() {
         );
     }
 
-    const difficulty = difficultyConfig[exercise.difficulty] ?? difficultyConfig[0];
+    const difficulty = difficultyConfig[exercise.difficulty - 1] ?? difficultyConfig[0];
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
