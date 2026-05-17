@@ -272,7 +272,7 @@ export function Users() {
                                     disabled={isProcessingBulk}
                                     className="px-4 py-2 bg-orange-500/20 text-orange-400 rounded-lg text-sm font-medium hover:bg-orange-500/30 disabled:opacity-50"
                                 >
-                                    {isProcessingBulk ? "Обработка..." : showArchive ? "Восстановить всех" : "В архив всех"}
+                                    {isProcessingBulk ? "Обработка..." : showArchive ? "Восстановить всех" : "В архив"}
                                 </button>
                             </div>
                         )}
@@ -294,7 +294,7 @@ export function Users() {
                         </button>
                         <button
                             onClick={() => setSortRole('admins-first')}
-                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all flex items-center gap-2 ${
                                 sortRole === 'admins-first'
                                     ? 'bg-accent text-background'
                                     : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
@@ -304,7 +304,7 @@ export function Users() {
                         </button>
                         <button
                             onClick={() => setSortRole('users-first')}
-                            className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all flex items-center gap-2 ${
                                 sortRole === 'users-first'
                                     ? 'bg-accent text-background'
                                     : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'

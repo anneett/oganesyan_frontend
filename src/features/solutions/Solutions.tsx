@@ -5,6 +5,7 @@ import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
 
 type SortSuccess = 'default' | 'high-first' | 'low-first';
 type SortAttempts = 'default' | 'most-first' | 'least-first';
+type SortDifficulty = 'default' | 'easy-first' | 'hard-first';
 
 export function Solutions() {
     const [search, setSearch] = useState("");
@@ -12,8 +13,10 @@ export function Solutions() {
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [sortSuccess, setSortSuccess] = useState<SortSuccess>('default');
     const [sortAttempts, setSortAttempts] = useState<SortAttempts>('default');
+    const [sortDifficulty, setSortDifficulty] = useState<SortDifficulty>('default');
 
     const [selectedDatabaseMetaId, setSelectedDatabaseMetaId] = useState<number | null>(null);
+    const [selectedDifficulty, setSelectedDifficulty] = useState<number | null>(null);
 
     const { data: dbData } = useGetDatabaseMetasQuery();
     const databases = Array.isArray(dbData) ? dbData : [];
@@ -33,6 +36,12 @@ export function Solutions() {
 
     const filteredExercises = exerciseStats.filter(stat => {
         if (!stat) return false;
+        if (
+            selectedDifficulty !== null &&
+            stat.exerciseDifficulty !== selectedDifficulty
+        ) {
+            return false;
+        }
         const title = String(stat.exerciseTitle || "Без названия").toLowerCase();
         const query = String(search || "").toLowerCase();
         return title.includes(query);
@@ -46,7 +55,7 @@ export function Solutions() {
     });
 
     const sortedExercises = useMemo(() => {
-        if (sortSuccess === 'default' && sortAttempts === 'default') return filteredExercises;
+        if (sortSuccess === 'default' && sortAttempts === 'default' && sortDifficulty === 'default') return filteredExercises;
 
         return [...filteredExercises].sort((a, b) => {
             if (sortSuccess === 'high-first') {
@@ -63,9 +72,17 @@ export function Solutions() {
                 return (Number(a?.totalAttempts) || 0) - (Number(b?.totalAttempts) || 0);
             }
 
+            if (sortDifficulty === 'easy-first') {
+                const diff = a.exerciseDifficulty - b.exerciseDifficulty;
+                if (diff !== 0) return diff;
+            } else if (sortDifficulty === 'hard-first') {
+                const diff = b.exerciseDifficulty - a.exerciseDifficulty;
+                if (diff !== 0) return diff;
+            }
+
             return 0;
         });
-    }, [filteredExercises, sortSuccess, sortAttempts]);
+    }, [filteredExercises, sortSuccess, sortAttempts, sortDifficulty]);
 
     const sortedUsers = useMemo(() => {
         if (sortSuccess === 'default' && sortAttempts === 'default') return filteredUsers;
@@ -112,16 +129,38 @@ export function Solutions() {
         return "bg-gradient-to-r from-red-500 to-red-400";
     };
 
+    const getDifficultyConfig = (difficulty: number) => {
+        const configs = {
+            1: {
+                label: "Легкая",
+                color: "bg-green-500/20 text-green-400 border-green-500/30"
+            },
+            2: {
+                label: "Средняя",
+                color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+            },
+            3: {
+                label: "Сложная",
+                color: "bg-red-500/20 text-red-400 border-red-500/30"
+            }
+        };
+        return configs[difficulty as keyof typeof configs] ?? configs[1];
+    };
+
     const clearFilters = () => {
         setSortSuccess('default');
         setSortAttempts('default');
+        setSortDifficulty('default');
+        setSelectedDifficulty(null);
     };
 
-    const hasActiveFilters = sortSuccess !== 'default' || sortAttempts !== 'default';
+    const hasActiveFilters = sortSuccess !== 'default' || sortAttempts !== 'default' || sortDifficulty !== 'default' || selectedDifficulty !== null;
 
     const activeFiltersCount = [
         sortSuccess !== 'default',
-        sortAttempts !== 'default'
+        sortAttempts !== 'default',
+        sortDifficulty !== 'default',
+        selectedDifficulty !== null
     ].filter(Boolean).length;
 
     if (isLoading) {
@@ -179,6 +218,21 @@ export function Solutions() {
                                 {database?.logicalName}
                             </option>
                         ))}
+                    </select>
+
+                    <select
+                        value={selectedDifficulty ?? ""}
+                        onChange={(e) =>
+                            setSelectedDifficulty(
+                                e.target.value ? Number(e.target.value) : null
+                            )
+                        }
+                        className="px-4 py-3 bg-background border border-secondary/30 rounded-xl text-text focus:outline-none focus:border-accent"
+                    >
+                        <option value="">Любая сложность</option>
+                        <option value="1">Легкая</option>
+                        <option value="2">Средняя</option>
+                        <option value="3">Сложная</option>
                     </select>
 
                     <button
@@ -361,24 +415,20 @@ export function Solutions() {
 
                                 <button
                                     onClick={() => setSortSuccess('high-first')}
-                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                                        sortSuccess === 'high-first'
-                                            ? 'bg-green-500/20 text-green-400 border-green-500/50'
-                                            : 'bg-green-500/10 text-green-400/70 border-green-500/20 hover:bg-green-500/20'
+                                    className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
+                                        sortSuccess === 'high-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
                                     }`}
                                 >
-                                    ↑ Сначала успешные
+                                    Сначала успешные
                                 </button>
 
                                 <button
                                     onClick={() => setSortSuccess('low-first')}
-                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                                        sortSuccess === 'low-first'
-                                            ? 'bg-red-500/20 text-red-400 border-red-500/50'
-                                            : 'bg-red-500/10 text-red-400/70 border-red-500/20 hover:bg-red-500/20'
+                                    className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
+                                        sortSuccess === 'low-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
                                     }`}
                                 >
-                                    ↓ Сначала неуспешные
+                                    Сначала неуспешные
                                 </button>
                             </div>
                         </div>
@@ -399,25 +449,30 @@ export function Solutions() {
 
                                 <button
                                     onClick={() => setSortAttempts('most-first')}
-                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                                        sortAttempts === 'most-first'
-                                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-                                            : 'bg-blue-500/10 text-blue-400/70 border-blue-500/20 hover:bg-blue-500/20'
+                                    className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
+                                        sortAttempts === 'most-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
                                     }`}
                                 >
-                                    ↑ Сначала больше попыток
+                                    Сначала больше попыток
                                 </button>
 
                                 <button
                                     onClick={() => setSortAttempts('least-first')}
-                                    className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
-                                        sortAttempts === 'least-first'
-                                            ? 'bg-purple-500/20 text-purple-400 border-purple-500/50'
-                                            : 'bg-purple-500/10 text-purple-400/70 border-purple-500/20 hover:bg-purple-500/20'
+                                    className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
+                                        sortAttempts === 'least-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'
                                     }`}
                                 >
-                                    ↓ Сначала меньше попыток
+                                    Сначала меньше попыток
                                 </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs text-text/50 mb-2">По сложности</label>
+                            <div className="flex flex-wrap gap-2">
+                                <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Без сортировки</button>
+                                <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сначала легкие</button>
+                                <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сначала сложные</button>
                             </div>
                         </div>
 
@@ -441,28 +496,37 @@ export function Solutions() {
 
                     {sortSuccess !== 'default' && (
                         <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                            sortSuccess === 'high-first'
-                                ? 'bg-green-500/20 text-green-400'
-                                : 'bg-red-500/20 text-red-400'
+                            sortSuccess === 'high-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
                         }`}>
-                {sortSuccess === 'high-first' ? '↑ Сначала успешные' : '↓ Сначала неуспешные'}
-                            <button onClick={() => setSortSuccess('default')} className="hover:opacity-70">
-                    ✕
-                </button>
-            </span>
+                            {sortSuccess === 'high-first' ? 'Сначала успешные' : 'Сначала неуспешные'}
+                                        <button onClick={() => setSortSuccess('default')} className="hover:opacity-70">
+                                ✕
+                            </button>
+                        </span>
                     )}
 
                     {sortAttempts !== 'default' && (
                         <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
                             sortAttempts === 'most-first'
-                                ? 'bg-blue-500/20 text-blue-400'
-                                : 'bg-purple-500/20 text-purple-400'
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                : 'bg-red-500/20 text-red-400 border border-red-500/30'
                         }`}>
-                {sortAttempts === 'most-first' ? '↑ Больше попыток' : '↓ Меньше попыток'}
-                            <button onClick={() => setSortAttempts('default')} className="hover:opacity-70">
-                    ✕
-                </button>
-            </span>
+                            {sortAttempts === 'most-first' ? 'Больше попыток' : 'Меньше попыток'}
+                                        <button onClick={() => setSortAttempts('default')} className="hover:opacity-70">
+                                ✕
+                            </button>
+                        </span>
+                    )}
+
+                    {sortDifficulty !== 'default' && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
+                            sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        }`}>
+                            {sortDifficulty === 'easy-first' ? 'Сначала легкие' : 'Сначала сложные'}
+                            <button onClick={() => setSortDifficulty('default')} className="hover:opacity-70">
+                                ✕
+                            </button>
+                        </span>
                     )}
                 </div>
             )}
@@ -490,6 +554,9 @@ export function Solutions() {
                                     База данных
                                 </th>
                             )}
+                            <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
+                                Сложность
+                            </th>
                             <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase tracking-wider">
                                 Попыток
                             </th>
@@ -548,6 +615,7 @@ export function Solutions() {
                         ) : (
                             sortedExercises.map((stat, index) => {
                                 const dbName = databases.find(db => db.id === stat.databaseMetaId)?.logicalName || "Неизвестно";
+                                const diffConfig = getDifficultyConfig(stat.exerciseDifficulty);
 
                                 return (
                                     <tr key={stat.exerciseId || index} className="hover:bg-secondary/5 transition-colors">
@@ -558,9 +626,9 @@ export function Solutions() {
                                         <td className="px-4 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
-                                        <span className="text-xs font-bold text-primary">
-                                            #{stat.exerciseId}
-                                        </span>
+                                                    <span className="text-xs font-bold text-primary">
+                                                        #{stat.exerciseId}
+                                                    </span>
                                                 </div>
                                                 <Link to={`/exercise/${stat.exerciseId}`} className="font-medium text-text hover:text-accent transition-colors">
                                                     {stat.exerciseTitle || "Без названия"}
@@ -569,9 +637,15 @@ export function Solutions() {
                                         </td>
 
                                         <td className="px-4 py-4 hidden md:table-cell">
-                                <span className="px-2 py-1 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-xs font-medium">
-                                    {dbName}
-                                </span>
+                                            <span className="inline-flex max-w-[160px] truncate px-2 py-1 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-xs font-medium">
+                                                {dbName}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${diffConfig.color}`}>
+                                                {diffConfig.label}
+                                            </span>
                                         </td>
 
                                         <td className="px-4 py-4 text-text/70">{stat.totalAttempts || 0}</td>

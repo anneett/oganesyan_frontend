@@ -25,6 +25,7 @@ export interface ExerciseStatsDto {
     exerciseId: number;
     databaseMetaId: number;
     exerciseTitle: string;
+    exerciseDifficulty: 1 | 2 | 3;
     totalAttempts: number;
     uniqueUsers: number;
     correctAnswers: number;

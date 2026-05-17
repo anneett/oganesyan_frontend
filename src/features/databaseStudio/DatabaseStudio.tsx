@@ -28,6 +28,28 @@ type Notice = {
 };
 
 const dbTypeOptions = ["PostgreSQL", "MySQL", "MS SQL Server", "SQLite"] as const;
+const connectionStringTemplates: Record<string, { example: string; url: string; description: string }> = {
+    "PostgreSQL": {
+        example: "Host=localhost;Port=5432;Database=mydb;Username=postgres;Password=mypassword;",
+        url: "https://www.connectionstrings.com/postgresql/",
+        description: "Npgsql (.NET) или стандартный формат PostgreSQL"
+    },
+    "MySQL": {
+        example: "Server=localhost;Database=mydb;Uid=root;Pwd=mypassword;",
+        url: "https://www.connectionstrings.com/mysql/",
+        description: "MySQL Connector/Net или стандартный формат MySQL"
+    },
+    "MS SQL Server": {
+        example: "Server=localhost;Database=mydb;User Id=sa;Password=mypassword;",
+        url: "https://www.connectionstrings.com/sql-server/",
+        description: "SQL Server стандартное подключение"
+    },
+    "SQLite": {
+        example: "Data Source=C:\\path\\to\\database.db;Version=3;",
+        url: "https://www.connectionstrings.com/sqlite/",
+        description: "Локальный файл базы данных SQLite"
+    }
+};
 
 const tabItems: { id: StudioTab; label: string; subtitle: string }[] = [
     { id: "connections", label: "Подключения", subtitle: "Серверы и connection string" },
@@ -343,6 +365,58 @@ export const DatabaseStudio = () => {
                                     }
                                     className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 font-mono text-sm text-text outline-none transition focus:border-accent/50"
                                 />
+
+                                {connectionStringTemplates[connectionForm.dbType] && (
+                                    <div className="mt-3 space-y-3 rounded-2xl border border-accent/20 bg-accent/5 p-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1">
+                                                <p className="text-s font-medium tracking-wider text-accent/80">
+                                                    Пример для {connectionForm.dbType}
+                                                </p>
+                                                <p className="mt-1 text-sm text-text/55">
+                                                    {connectionStringTemplates[connectionForm.dbType].description}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setConnectionForm((prev) => ({
+                                                        ...prev,
+                                                        connectionString: connectionStringTemplates[connectionForm.dbType].example
+                                                    }));
+                                                    setConnectionNotice({
+                                                        tone: "info",
+                                                        text: "Шаблон вставлен. Не забудьте заменить значения на реальные!"
+                                                    });
+                                                }}
+                                                className="shrink-0 rounded-xl border border-accent/30 bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent transition hover:bg-accent/20"
+                                            >
+                                                Вставить шаблон
+                                            </button>
+                                        </div>
+
+                                        <div className="rounded-xl border border-white/8 bg-[#0f1720] px-3 py-2">
+                                            <code className="block overflow-x-auto whitespace-nowrap font-mono text-sm text-text/80">
+                                                {connectionStringTemplates[connectionForm.dbType].example}
+                                            </code>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <svg className="h-4 w-4 shrink-0 text-text/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="text-text/55">Больше примеров и вариантов:</span>
+                                            <a
+                                                href={connectionStringTemplates[connectionForm.dbType].url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="font-medium text-accent underline decoration-accent/30 underline-offset-2 transition hover:decoration-accent"
+                                            >
+                                                ConnectionStrings.com
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex flex-wrap gap-3">

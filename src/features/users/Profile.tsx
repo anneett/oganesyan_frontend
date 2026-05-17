@@ -2,6 +2,7 @@ import { useGetUserProfileQuery, useGetUserStatsQuery, useUpdateUserMutation } f
 import { useState, useMemo } from "react";
 import * as React from "react";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
+import {Link} from "react-router-dom";
 
 type SortDate = 'newest' | 'oldest';
 type SortCorrectness = 'all' | 'correct-first' | 'incorrect-first';
@@ -84,7 +85,7 @@ export function Profile() {
             { label: "Средний", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
             { label: "Сложный", color: "bg-red-500/20 text-red-400 border-red-500/30" }
         ];
-        return configs[difficulty] || configs[0];
+        return configs[difficulty - 1] || configs[0];
     };
 
     const hasActiveFilters = sortDate !== 'newest' || sortCorrectness !== 'all' || sortDifficulty !== 'default' || filterType !== 'all';
@@ -219,27 +220,64 @@ export function Profile() {
                 </div>
 
                 <div className={`overflow-hidden transition-all duration-300 ${isFiltersOpen ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
-                    <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4 flex gap-4 flex-wrap">
-                        <div className="flex gap-2">
-                            <button onClick={() => setSortDate('newest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'newest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Новые</button>
-                            <button onClick={() => setSortDate('oldest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'oldest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Старые</button>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setSortCorrectness('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все</button>
-                            <button onClick={() => setSortCorrectness('correct-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'correct-first' ? 'bg-green-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Верные</button>
-                            <button onClick={() => setSortCorrectness('incorrect-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'incorrect-first' ? 'bg-red-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Ошибки</button>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Любая</button>
-                            <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Лёгкие</button>
-                            <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сложные</button>
+                    <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4 space-y-5">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.2em] text-text/40 mb-3">
+                                Сортировка
+                            </p>
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-xs text-text/40 mb-2">По дате</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button onClick={() => setSortDate('newest')} className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${sortDate === 'newest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Новые</button>
+                                        <button onClick={() => setSortDate('oldest')} className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${sortDate === 'oldest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Старые</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-text/40 mb-2">По правильности</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button onClick={() => setSortCorrectness('all')} className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${sortCorrectness === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все</button>
+                                        <button onClick={() => setSortCorrectness('correct-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'correct-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Верные</button>
+                                        <button onClick={() => setSortCorrectness('incorrect-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'incorrect-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Ошибки</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-text/40 mb-2">По сложности</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Без сортировки</button>
+                                        <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сначала легкие</button>
+                                        <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сначала сложные</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex gap-2">
-                            <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все типы</button>
-                            <button onClick={() => setFilterType('training')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'training' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Тренировки</button>
-                            <button onClick={() => setFilterType('exam')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'exam' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Контрольные</button>
+                        <div className="pt-4 border-t border-secondary/20">
+                            <p className="text-xs uppercase tracking-[0.2em] text-text/40 mb-3">
+                                Фильтры
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${filterType === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все типы</button>
+                                <button onClick={() => setFilterType('training')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'training' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Тренировки</button>
+                                <button onClick={() => setFilterType('exam')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'exam' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Контрольные</button>
+                            </div>
                         </div>
+
+                        {hasActiveFilters && (
+                            <div className="pt-4 border-t border-secondary/20">
+                                <button
+                                    onClick={() => {
+                                        setSortDate('newest');
+                                        setSortCorrectness('all');
+                                        setSortDifficulty('default');
+                                        setFilterType('all');
+                                    }}
+                                    className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/20"
+                                >
+                                    Сбросить фильтры и сортировки
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -248,7 +286,10 @@ export function Profile() {
                         <table className="w-full">
                             <thead>
                             <tr className="bg-secondary/10 border-b border-secondary/20">
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase">#</th>
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase">Задание</th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase">База данных</th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase">Сложность</th>
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase">Тип</th>
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase hidden lg:table-cell">Ответы</th>
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-text/70 uppercase">Результат</th>
@@ -256,17 +297,38 @@ export function Profile() {
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-secondary/10">
-                            {filteredAndSortedStats.map((solution) => {
+                            {filteredAndSortedStats.map((solution, index) => {
                                 const diffConfig = getDifficultyConfig(solution.exerciseDifficulty);
+                                const databaseName = databases.find(db => db.id === solution.databaseMetaId)?.logicalName ?? "База данных";
                                 return (
                                     <tr key={solution.solutionId} className="hover:bg-secondary/5 transition-colors">
+                                        <td className="px-4 py-4 text-text/40 font-mono text-sm">
+                                            {index + 1}
+                                        </td>
+
                                         <td className="px-4 py-4">
-                                            <div className="flex flex-col gap-1">
-                                                <span className="font-medium text-text">{solution.exerciseTitle}</span>
-                                                <span className={`w-max px-2 py-0.5 text-xs font-medium rounded-full border ${diffConfig.color}`}>
-                                                    {diffConfig.label}
-                                                </span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                                                    <span className="text-xs font-bold text-primary">
+                                                        #{solution.exerciseId}
+                                                    </span>
+                                                </div>
+                                                <Link to={`/exercise/${solution.exerciseId}`} className="font-medium text-text hover:text-accent transition-colors">
+                                                    {solution.exerciseTitle || "Без названия"}
+                                                </Link>
                                             </div>
+                                        </td>
+
+                                        <td className="px-4 py-4">
+                                            <span className="inline-flex items-center justify-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px] px-2 py-1 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-xs font-medium">
+                                                {databaseName}
+                                            </span>
+                                        </td>
+
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${diffConfig.color}`}>
+                                                {diffConfig.label}
+                                            </span>
                                         </td>
 
                                         <td className="px-4 py-4">

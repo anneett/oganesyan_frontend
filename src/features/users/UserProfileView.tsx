@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import {Link, useParams} from "react-router-dom";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
 import { useGetUserProfileByIdQuery, useGetUserStatsQuery } from "./usersApi";
 
@@ -32,6 +32,15 @@ export function UserProfileView() {
     const correctSolutions = stats.filter((item) => item.isCorrect).length;
     const successRate = totalSolutions > 0 ? Math.round((correctSolutions / totalSolutions) * 100) : 0;
     const solvedExercises = useMemo(() => new Set(stats.filter((item) => item.isCorrect).map((item) => item.exerciseId)), [stats]);
+    const getDifficultyConfig = (difficulty: number) => {
+        const configs = [
+            { label: "Легкий", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+            { label: "Средний", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+            { label: "Сложный", color: "bg-red-500/20 text-red-400 border-red-500/30" }
+        ];
+
+        return configs[difficulty - 1] || configs[0];
+    };
 
     const filteredAndSortedStats = useMemo(() => {
         let result = [...stats];
@@ -109,38 +118,90 @@ export function UserProfileView() {
                 </button>
             </div>
 
-            <div className={`overflow-hidden transition-all duration-300 ${isFiltersOpen ? 'max-h-[500px] opacity-100 mb-6' : 'max-h-0 opacity-0'}`}>
-                <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4 flex gap-4 flex-wrap">
-                    <div className="flex gap-2">
-                        <button onClick={() => setSortDate('newest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'newest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Новые</button>
-                        <button onClick={() => setSortDate('oldest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'oldest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Старые</button>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setSortCorrectness('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все</button>
-                        <button onClick={() => setSortCorrectness('correct-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'correct-first' ? 'bg-green-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Верные</button>
-                        <button onClick={() => setSortCorrectness('incorrect-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'incorrect-first' ? 'bg-red-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Ошибки</button>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Любая</button>
-                        <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Лёгкие</button>
-                        <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сложные</button>
+            <div className={`overflow-hidden transition-all duration-300 ${isFiltersOpen ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
+                <div className="bg-secondary/5 border border-secondary/20 rounded-xl p-4 space-y-5">
+                    <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-text/40 mb-3">
+                            Сортировка
+                        </p>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-xs text-text/40 mb-2">По дате</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setSortDate('newest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'newest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Новые</button>
+                                    <button onClick={() => setSortDate('oldest')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDate === 'oldest' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Старые</button>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs text-text/40 mb-2">По правильности</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setSortCorrectness('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все</button>
+                                    <button onClick={() => setSortCorrectness('correct-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'correct-first' ? 'bg-green-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Верные</button>
+                                    <button onClick={() => setSortCorrectness('incorrect-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortCorrectness === 'incorrect-first' ? 'bg-red-500 text-white' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Ошибки</button>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs text-text/40 mb-2">По сложности</p>
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setSortDifficulty('default')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'default' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Без сортировки</button>
+                                    <button onClick={() => setSortDifficulty('easy-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'easy-first' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сначала легкие</button>
+                                    <button onClick={() => setSortDifficulty('hard-first')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${sortDifficulty === 'hard-first' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Сначала сложные</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex gap-2">
-                        <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все типы</button>
-                        <button onClick={() => setFilterType('training')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'training' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Тренировки</button>
-                        <button onClick={() => setFilterType('exam')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'exam' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Контрольные</button>
+                    <div className="pt-4 border-t border-secondary/20">
+                        <p className="text-xs uppercase tracking-[0.2em] text-text/40 mb-3">
+                            Фильтры
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'all' ? 'bg-accent text-background' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Все типы</button>
+                            <button onClick={() => setFilterType('training')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'training' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Тренировки</button>
+                            <button onClick={() => setFilterType('exam')} className={`px-3 py-1.5 rounded-lg text-sm transition-all ${filterType === 'exam' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-secondary/10 text-text/70 hover:bg-secondary/20'}`}>Контрольные</button>
+                        </div>
                     </div>
+
+                    {hasActiveFilters && (
+                        <div className="pt-4 border-t border-secondary/20">
+                            <button
+                                onClick={() => {
+                                    setSortDate('newest');
+                                    setSortCorrectness('all');
+                                    setSortDifficulty('default');
+                                    setFilterType('all');
+                                }}
+                                className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/20"
+                            >
+                                Сбросить фильтры и сортировки
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <section className="space-y-4">
-                {filteredAndSortedStats.map((solution) => (
+                {filteredAndSortedStats.map((solution) => {
+                    const diffConfig = getDifficultyConfig(solution.exerciseDifficulty);
+                    const databaseName =
+                        databases.find(db => db.id === solution.databaseMetaId)?.logicalName ?? "База данных";
+
+                    return (
                     <article key={solution.solutionId} className="rounded-2xl border border-secondary/20 bg-secondary/5 p-5">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                    <h2 className="text-xl font-semibold text-text">{solution.exerciseTitle}</h2>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        <span className="inline-flex items-center justify-center whitespace-nowrap overflow-hidden text-ellipsis max-w-[160px] px-2 py-1 bg-secondary/10 text-secondary border border-secondary/20 rounded-full text-xs font-medium">
+                                            {databaseName}
+                                        </span>
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${diffConfig.color}`}>
+                                            {diffConfig.label}
+                                        </span>
+                                    </div>
+                                    <Link to={`/exercise/${solution.exerciseId}`} className="text-xl font-semibold text-text hover:text-accent transition-colors">
+                                        {solution.exerciseTitle || "Без названия"}
+                                    </Link>
                                     {solution.isExam ? (
                                         <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-full text-xs font-medium">Контрольная</span>
                                     ) : (
@@ -166,7 +227,8 @@ export function UserProfileView() {
                             </div>
                         </div>
                     </article>
-                ))}
+                    );
+                })}
 
                 {filteredAndSortedStats.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-secondary/20 bg-secondary/5 p-10 text-center text-text/50">

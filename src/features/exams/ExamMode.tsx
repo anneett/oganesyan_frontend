@@ -193,8 +193,7 @@ export const ExamMode = () => {
         const errors: string[] = [];
 
         for (const exercise of latestExercises) {
-            const answer = latestAnswers[exercise.id]?.trim();
-            if (!answer) continue;
+            const answer = latestAnswers[exercise.id]?.trim() || "";
 
             try {
                 await createSolution({

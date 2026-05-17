@@ -3,7 +3,11 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetAttemptDetailsQuery, useGetAttemptExercisesQuery, useGetUserAttemptsQuery } from "./examsApi";
 
-const difficultyLabels = ["Легкая", "Средняя", "Сложная"];
+const difficultyLabels: Record<number, string> = {
+    1: "Легкая",
+    2: "Средняя",
+    3: "Сложная",
+};
 
 type AttemptSolution = {
     exerciseId: number;
@@ -80,42 +84,9 @@ export const ExamResults = () => {
         );
     }
 
-    return (
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-            <section className="mb-8 overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(48,102,124,0.18),rgba(70,175,171,0.12),rgba(212,179,104,0.14))] p-6 shadow-2xl shadow-black/20 sm:p-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                        <p className="mb-3 text-xs uppercase tracking-[0.28em] text-text/40">Результаты контрольной</p>
-                        <h1 className="text-3xl font-semibold text-text sm:text-4xl">{attemptsData.examTitle}</h1>
-                        <p className="mt-4 max-w-3xl text-base leading-7 text-text/65">
-                            {isResultsReleased
-                                ? "Результаты опубликованы. Можно открыть любую попытку и посмотреть подробности по каждому заданию."
-                                : "Пока идет проверка преподавателем. Список ваших завершенных попыток уже доступен, но оценки и сравнение результатов пока скрыты."}
-                        </p>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                        <div className="rounded-3xl border border-white/8 bg-black/18 p-5">
-                            <p className="text-sm text-text/50">Попыток использовано</p>
-                            <p className="mt-2 text-3xl font-semibold text-primary">
-                                {attemptsData.usedAttempts}
-                                {attemptsData.maxAttempts !== null && ` / ${attemptsData.maxAttempts}`}
-                            </p>
-                        </div>
-                        {isResultsReleased && attemptsData.bestAttemptId && (
-                            <div className="rounded-3xl border border-white/8 bg-black/18 p-5">
-                                <p className="text-sm text-text/50">Лучший результат</p>
-                                <p className="mt-2 text-3xl font-semibold text-accent">
-                                    {attemptsData.attempts.find((attempt) => attempt.attemptId === attemptsData.bestAttemptId)?.percentage ?? 0}
-                                    %
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </section>
-
-            {attemptsData.attempts.length === 0 ? (
+    if (attemptsData.attempts.length === 0) {
+        return (
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
                 <div className="rounded-[2rem] border border-white/8 bg-white/4 p-8 text-center">
                     <p className="text-lg text-text/60">
                         {attemptsData.message ?? "У вас пока нет завершенных попыток этой контрольной."}
@@ -127,8 +98,45 @@ export const ExamResults = () => {
                         Вернуться к контрольным
                     </Link>
                 </div>
-            ) : (
-                <section className="grid gap-6 xl:grid-cols-[0.9fr,1.1fr]">
+            </div>
+        );
+    }
+
+    return (
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+                <div className="space-y-6">
+                    <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(48,102,124,0.18),rgba(70,175,171,0.12),rgba(212,179,104,0.14))] p-6 shadow-2xl shadow-black/20 sm:p-8">
+                        <div>
+                            <p className="mb-3 text-xs uppercase tracking-[0.28em] text-text/40">Результаты контрольной</p>
+                            <h1 className="text-3xl font-semibold text-text sm:text-4xl">{attemptsData.examTitle}</h1>
+                            <p className="mt-4 text-base leading-7 text-text/65">
+                                {isResultsReleased
+                                    ? "Результаты опубликованы. Можно открыть любую попытку и посмотреть подробности по каждому заданию."
+                                    : "Пока идет проверка преподавателем. Список ваших завершенных попыток уже доступен, но оценки и сравнение результатов пока скрыты."}
+                            </p>
+                        </div>
+
+                        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-3xl border border-white/8 bg-black/18 p-5">
+                                <p className="text-sm text-text/50">Попыток использовано</p>
+                                <p className="mt-2 text-3xl font-semibold text-primary">
+                                    {attemptsData.usedAttempts}
+                                    {attemptsData.maxAttempts !== null && ` / ${attemptsData.maxAttempts}`}
+                                </p>
+                            </div>
+                            {isResultsReleased && attemptsData.bestAttemptId && (
+                                <div className="rounded-3xl border border-white/8 bg-black/18 p-5">
+                                    <p className="text-sm text-text/50">Лучший результат</p>
+                                    <p className="mt-2 text-3xl font-semibold text-accent">
+                                        {attemptsData.attempts.find((attempt) => attempt.attemptId === attemptsData.bestAttemptId)?.percentage ?? 0}
+                                        %
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
                     <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         <div className="mb-6">
                             <h2 className="text-2xl font-semibold text-text">Ваши попытки</h2>
@@ -201,10 +209,12 @@ export const ExamResults = () => {
                             Вернуться к контрольным
                         </Link>
                     </div>
+                </div>
 
+                <div className="lg:sticky lg:top-6 lg:self-start">
                     <div className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         {!selectedAttemptId ? (
-                            <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-20 text-center">
+                            <div className="flex min-h-[400px] items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-20 text-center">
                                 <p className="text-text/50">
                                     {isResultsReleased
                                         ? "Выберите попытку слева, чтобы посмотреть решения и статистику."
@@ -212,7 +222,7 @@ export const ExamResults = () => {
                                 </p>
                             </div>
                         ) : !attemptDetails ? (
-                            <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-20 text-center">
+                            <div className="flex min-h-[400px] items-center justify-center rounded-3xl border border-dashed border-white/10 bg-black/15 px-5 py-20 text-center">
                                 <p className="text-text/50">Загружаем детали попытки...</p>
                             </div>
                         ) : !attemptDetails.isResultsReleased ? (
@@ -226,7 +236,7 @@ export const ExamResults = () => {
                             <div className="space-y-6">
                                 <div className="rounded-3xl border border-green-500/25 bg-green-500/10 p-6">
                                     <h3 className="text-2xl font-semibold text-green-200">Итоги попытки</h3>
-                                    <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
                                         <div>
                                             <p className="text-sm text-green-100/70">Правильных ответов</p>
                                             <p className="mt-1 text-3xl font-semibold text-green-100">
@@ -327,8 +337,8 @@ export const ExamResults = () => {
                             </div>
                         )}
                     </div>
-                </section>
-            )}
+                </div>
+            </div>
         </div>
     );
 };
