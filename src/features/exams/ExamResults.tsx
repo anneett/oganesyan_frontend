@@ -2,6 +2,7 @@ import { skipToken } from "@reduxjs/toolkit/query";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useGetAttemptDetailsQuery, useGetAttemptExercisesQuery, useGetUserAttemptsQuery } from "./examsApi";
+import { useGetUserProfileQuery } from "../users/usersApi";
 
 const difficultyLabels: Record<number, string> = {
     1: "Легкая",
@@ -29,9 +30,14 @@ const formatDateTime = (value: string) =>
 export const ExamResults = () => {
     const { examId } = useParams();
     const [selectedAttemptId, setSelectedAttemptId] = useState<number | null>(null);
+    const { data: user } = useGetUserProfileQuery();
+
+    const numericExamId = examId ? Number(examId) : null;
 
     const { data: attemptsData, isLoading: isLoadingAttempts } = useGetUserAttemptsQuery(
-        examId ? Number(examId) : skipToken,
+        user?.id && numericExamId
+            ? { examId: numericExamId, userId: user.id }
+            : skipToken,
     );
 
     const { data: attemptDetails } = useGetAttemptDetailsQuery(selectedAttemptId ?? skipToken, {

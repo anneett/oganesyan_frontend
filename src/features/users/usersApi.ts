@@ -1,4 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQuery } from "../../app/baseQuery";
 
 export interface User {
     id: number;
@@ -36,14 +37,7 @@ export interface UserSolution {
 export const usersApi = createApi({
     reducerPath: "usersApi",
     tagTypes: ['Profile', 'Users'],
-    baseQuery: fetchBaseQuery({
-        baseUrl: "http://localhost:5177/api",
-        prepareHeaders: (headers) => {
-            const token = localStorage.getItem("access_token");
-            if (token) headers.set("Authorization", `Bearer ${token}`);
-            return headers;
-        }
-    }),
+    baseQuery: baseQuery,
     endpoints: (builder) => ({
         createUser: builder.mutation<User, CreateUserRequest>({
             query: (newUser) => ({

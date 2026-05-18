@@ -8,6 +8,7 @@ import { databaseMetasApi } from "../features/databaseMetas/databaseMetasApi";
 import { exercisesApi } from "../features/exercises/exercisesApi";
 import { solutionsApi } from "../features/solutions/solutionsApi";
 import { useGetUserProfileQuery, usersApi } from "../features/users/usersApi";
+import { examsApi } from "../features/exams/examsApi";
 
 type NavItem = {
     to: string;
@@ -112,11 +113,17 @@ export const Layout = () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
 
+        Object.keys(localStorage)
+            .filter((key) => key.startsWith("exam_answers_"))
+            .forEach((key) => localStorage.removeItem(key));
+
         dispatch(authApi.util.resetApiState());
         dispatch(usersApi.util.resetApiState());
         dispatch(exercisesApi.util.resetApiState());
         dispatch(solutionsApi.util.resetApiState());
         dispatch(databaseMetasApi.util.resetApiState());
+
+        dispatch(examsApi.util.resetApiState());
 
         setIsMenuOpen(false);
         navigate("/login");

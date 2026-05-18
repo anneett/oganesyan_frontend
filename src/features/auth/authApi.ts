@@ -1,5 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import CryptoJS from "crypto-js";
+import { baseQuery } from "../../app/baseQuery";
 
 export interface LoginRequest {
     login: string;
@@ -15,16 +16,7 @@ export interface AuthResponse {
 
 export const authApi = createApi({
     reducerPath: "authApi",
-    baseQuery: fetchBaseQuery({
-        baseUrl: "http://localhost:5177/api",
-        prepareHeaders: (headers) => {
-            const token = localStorage.getItem("access_token");
-            if (token) {
-                headers.set("Authorization", `Bearer ${token}`);
-            }
-            return headers;
-        }
-    }),
+    baseQuery: baseQuery,
     endpoints: (builder) => ({
         login: builder.mutation<AuthResponse, LoginRequest>({
             query: ({ login, password }) => {

@@ -179,8 +179,8 @@ export const examsApi = createApi({
             }),
             invalidatesTags: ["ExamAttempts", "ExamResults"],
         }),
-        getMyResults: builder.query<ExamResultsResponse, number>({
-            query: (examId) => `/Exams/${examId}/my-results`,
+        getMyResults: builder.query<ExamResultsResponse, { examId: number; userId: number }>({
+            query: ({ examId }) => `/Exams/${examId}/my-results`,
             providesTags: ["ExamResults"],
         }),
         createExam: builder.mutation<Exam, ExamCreateRequest>({
@@ -202,12 +202,12 @@ export const examsApi = createApi({
             query: (examId) => `/Exams/${examId}/attempts`,
             providesTags: ["ExamAttempts"],
         }),
-        getUserExamInfo: builder.query<UserExamInfo, number>({
-            query: (examId) => `/Exams/${examId}/user-info`,
+        getUserExamInfo: builder.query<UserExamInfo, { examId: number; userId: number }>({
+            query: ({ examId }) => `/Exams/${examId}/user-info`,
             providesTags: ["ExamAttempts"],
         }),
-        getUserAttempts: builder.query<UserAttemptsResponse, number>({
-            query: (examId) => `/Exams/${examId}/my-attempts`,
+        getUserAttempts: builder.query<UserAttemptsResponse, { examId: number; userId: number }>({
+            query: ({ examId }) => `/Exams/${examId}/my-attempts`,
             providesTags: ["ExamResults"],
         }),
         getAttemptDetails: builder.query<AttemptDetailsResponse, number>({
@@ -220,6 +220,10 @@ export const examsApi = createApi({
         }),
         getAttemptExercises: builder.query<Exercise[], number>({
             query: (attemptId) => `/Exams/attempt/${attemptId}/exercises`,
+            providesTags: ["ExamAttempts"],
+        }),
+        getActiveAttempt: builder.query<ExamAttempt | null, number>({
+            query: () => "/Exams/active-attempt",
             providesTags: ["ExamAttempts"],
         }),
     }),
@@ -239,4 +243,5 @@ export const {
     useGetAttemptDetailsQuery,
     useGetAdminAttemptDetailsQuery,
     useGetAttemptExercisesQuery,
+    useGetActiveAttemptQuery,
 } = examsApi;

@@ -9,14 +9,21 @@ import { useTestQueryMutation } from "../exercises/exercisesApi";
 import {
     type Exam,
     type ExamAttempt,
-    useFinishExamMutation,
+    useFinishExamMutation, useGetActiveAttemptQuery,
     useGetActiveExamsQuery,
     useGetAttemptExercisesQuery,
     useGetMyResultsQuery,
     useGetUserExamInfoQuery,
     useStartExamMutation,
 } from "./examsApi";
+import { useGetUserProfileQuery } from "../users/usersApi";
 import { useCreateSolutionMutation } from "../solutions/solutionsApi";
+
+const getUtcTimestamp = (dateStr: string) => {
+    if (!dateStr) return 0;
+    const safeDateStr = dateStr.endsWith("Z") ? dateStr : `${dateStr}Z`;
+    return new Date(safeDateStr).getTime();
+};
 
 const formatSeconds = (seconds: number) => {
     const safeValue = Math.max(seconds, 0);
@@ -27,16 +34,9 @@ const formatSeconds = (seconds: number) => {
 
 const difficultyLabels = ["Легкая", "Средняя", "Сложная"];
 
-type SavedAttemptState = {
-    examId: number;
-    attemptId: number;
-    deploymentId: number;
-    startedAt: string;
-    durationMinutes: number;
+type SavedAnswersState = {
     answers: Record<number, string>;
 };
-
-const STORAGE_KEY = "exam_attempt_state";
 
 const getAssetUrl = (path?: string | null) => {
     if (!path) return null;
@@ -67,6 +67,10 @@ export const ExamMode = () => {
     const [finishExam] = useFinishExamMutation();
     const [createSolution] = useCreateSolutionMutation();
     const [testQuery] = useTestQueryMutation();
+    const { data: user } = useGetUserProfileQuery();
+    const { data: activeAttempt } = useGetActiveAttemptQuery(user?.id ?? 0, {skip: !user?.id});
+
+    const storageKey = user && currentAttempt ? `exam_answers_${user.id}_${currentAttempt.id}` : null;
 
     const selectedExam = useMemo(
         () => activeExams.find((exam) => exam.id === selectedExamId) ?? null,
@@ -89,13 +93,15 @@ export const ExamMode = () => {
     const totalExercisesCount = currentAttempt ? examExercises.length : selectedExam?.totalExercises ?? 0;
     const answeredCount = examExercises.filter((exercise) => answers[exercise.id]?.trim()).length;
 
-    const { data: myResults } = useGetMyResultsQuery(currentAttempt?.examId ?? 0, {
-        skip: !currentAttempt,
-    });
+    const { data: myResults } = useGetMyResultsQuery(
+        currentAttempt && user?.id ? { examId: currentAttempt.examId, userId: user.id } : skipToken,
+        { skip: !currentAttempt || !user?.id }
+    );
 
-    const { data: userExamInfo } = useGetUserExamInfoQuery(selectedExamId ?? skipToken, {
-        skip: !selectedExamId,
-    });
+    const { data: userExamInfo } = useGetUserExamInfoQuery(
+        selectedExamId && user?.id ? { examId: selectedExamId, userId: user.id } : skipToken,
+        { skip: !selectedExamId || !user?.id }
+    );
 
     const submittedSolutionsCount = myResults?.solutions?.length ?? myResults?.submittedCount ?? 0;
     const correctAnswersCount = myResults?.correctAnswers ?? 0;
@@ -108,9 +114,13 @@ export const ExamMode = () => {
             return selectedExam?.durationMinutes ? selectedExam.durationMinutes * 60 : 0;
         }
 
-        const startTime = new Date(currentAttempt.startedAt).getTime();
+        if (!selectedExam?.durationMinutes) {
+            return 999999;
+        }
+
+        const startTime = getUtcTimestamp(currentAttempt.startedAt);
         const elapsedSeconds = Math.floor((now - startTime) / 1000);
-        const totalSeconds = selectedExam?.durationMinutes ? selectedExam.durationMinutes * 60 : 0;
+        const totalSeconds = selectedExam.durationMinutes * 60;
 
         return Math.max(totalSeconds - elapsedSeconds, 0);
     }, [currentAttempt, now, selectedExam]);
@@ -132,51 +142,51 @@ export const ExamMode = () => {
     }, [examExercises]);
 
     useEffect(() => {
-        if (isLoadingExams) return;
-
-        const savedState = localStorage.getItem(STORAGE_KEY);
-        if (!savedState) return;
-
-        try {
-            const parsed: SavedAttemptState = JSON.parse(savedState);
-            const startTime = new Date(parsed.startedAt).getTime();
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            const timeLeft = parsed.durationMinutes * 60 - elapsed;
-
-            if (timeLeft > 0) {
-                setSelectedExamId(parsed.examId);
-                setSelectedDeploymentId(parsed.deploymentId);
-                setCurrentAttempt({
-                    id: parsed.attemptId,
-                    examId: parsed.examId,
-                    userId: 0,
-                    selectedDeploymentId: parsed.deploymentId,
-                    startedAt: parsed.startedAt,
-                    finishedAt: null,
-                });
-                setAnswers(parsed.answers);
-                setNow(Date.now());
-            } else {
-                localStorage.removeItem(STORAGE_KEY);
-            }
-        } catch {
-            localStorage.removeItem(STORAGE_KEY);
+        if (user?.id) {
+            handleResetExam();
         }
-    }, [isLoadingExams]);
+    }, [user?.id]);
 
     useEffect(() => {
-        if (currentAttempt && !currentAttempt.finishedAt && selectedExam) {
-            const state: SavedAttemptState = {
-                examId: currentAttempt.examId,
-                attemptId: currentAttempt.id,
-                deploymentId: currentAttempt.selectedDeploymentId,
-                startedAt: currentAttempt.startedAt,
-                durationMinutes: selectedExam.durationMinutes,
-                answers,
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (!activeAttempt) return;
+
+        setCurrentAttempt(activeAttempt);
+        setSelectedExamId(activeAttempt.examId);
+        setSelectedDeploymentId(activeAttempt.selectedDeploymentId);
+    }, [activeAttempt]);
+
+    useEffect(() => {
+        if (!storageKey || !currentAttempt || currentAttempt.finishedAt) {
+            return;
         }
-    }, [answers, currentAttempt, selectedExam]);
+
+        const state: SavedAnswersState = {
+            answers,
+        };
+
+        localStorage.setItem(storageKey, JSON.stringify(state));
+    }, [answers, currentAttempt, storageKey]);
+
+    useEffect(() => {
+        if (!storageKey) return;
+
+        const raw = localStorage.getItem(storageKey);
+
+        if (!raw) {
+            setAnswers({});
+            return;
+        }
+
+        try {
+            const parsed: SavedAnswersState = JSON.parse(raw);
+            setAnswers(parsed.answers ?? {});
+        } catch {
+            if (storageKey) {
+                localStorage.removeItem(storageKey);
+            }
+            setAnswers({});
+        }
+    }, [storageKey]);
 
     const handleFinishExam = useCallback(async () => {
         const attempt = attemptRef.current;
@@ -185,6 +195,11 @@ export const ExamMode = () => {
         const latestExercises = examExercisesRef.current;
 
         if (!attempt || !exam || finishInProgress.current || isSubmittingAnswers) return;
+
+        if (latestExercises.length === 0) {
+            setGeneralError("Задания еще загружаются, подождите...");
+            return;
+        }
 
         finishInProgress.current = true;
         setIsSubmittingAnswers(true);
@@ -212,7 +227,9 @@ export const ExamMode = () => {
         try {
             await finishExam(attempt.examId).unwrap();
             setCurrentAttempt((prev) => (prev ? { ...prev, finishedAt: new Date().toISOString() } : null));
-            localStorage.removeItem(STORAGE_KEY);
+            if (storageKey) {
+                localStorage.removeItem(storageKey);
+            }
 
             if (errors.length > 0) {
                 setGeneralError(`Контрольная завершена, но не все ответы удалось сохранить:\n${errors.join("\n")}`);
@@ -223,18 +240,28 @@ export const ExamMode = () => {
             setIsSubmittingAnswers(false);
             finishInProgress.current = false;
         }
-    }, [createSolution, finishExam, isSubmittingAnswers]);
+    }, [createSolution, finishExam, isSubmittingAnswers, storageKey]);
 
     useEffect(() => {
-        if (!currentAttempt || currentAttempt.finishedAt) return;
+        if (
+            !currentAttempt ||
+            currentAttempt.finishedAt ||
+            !selectedExam
+        ) {
+            return;
+        }
+
+        if (!selectedExam.durationMinutes) {
+            return;
+        }
 
         const intervalId = window.setInterval(() => {
             const currentNow = Date.now();
             setNow(currentNow);
 
-            const startTime = new Date(currentAttempt.startedAt).getTime();
+            const startTime = getUtcTimestamp(currentAttempt.startedAt);
             const elapsed = Math.floor((currentNow - startTime) / 1000);
-            const totalSeconds = selectedExam?.durationMinutes ? selectedExam.durationMinutes * 60 : 0;
+            const totalSeconds = selectedExam.durationMinutes * 60;
             const remaining = Math.max(totalSeconds - elapsed, 0);
 
             if (remaining === 0 && !finishInProgress.current) {
@@ -304,7 +331,9 @@ export const ExamMode = () => {
         setCurrentAttempt(null);
         setAnswers({});
         setGeneralError(null);
-        localStorage.removeItem(STORAGE_KEY);
+        if (storageKey) {
+            localStorage.removeItem(storageKey);
+        }
         finishInProgress.current = false;
     };
 
@@ -360,7 +389,7 @@ export const ExamMode = () => {
                                     secondsLeft < 300 && currentAttempt && !currentAttempt.finishedAt ? "text-red-300" : "text-text"
                                 }`}
                             >
-                                {formatSeconds(secondsLeft)}
+                                {!selectedExam?.durationMinutes ? "∞" : formatSeconds(secondsLeft)}
                             </p>
                         </div>
                     </div>
