@@ -1,5 +1,5 @@
 import { useGetExercisesStatsQuery, useGetUsersStatsQuery } from './solutionsApi';
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useGetDatabaseMetasQuery } from "../databaseMetas/databaseMetasApi";
 
@@ -8,6 +8,7 @@ type SortAttempts = 'default' | 'most-first' | 'least-first';
 type SortDifficulty = 'default' | 'easy-first' | 'hard-first';
 
 export function Solutions() {
+    const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
     const [search, setSearch] = useState("");
     const [showUserStats, setShowUserStats] = useState(false);
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -17,6 +18,8 @@ export function Solutions() {
 
     const [selectedDatabaseMetaId, setSelectedDatabaseMetaId] = useState<number | null>(null);
     const [selectedDifficulty, setSelectedDifficulty] = useState<number | null>(null);
+    const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(20);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const { data: dbData } = useGetDatabaseMetasQuery();
     const databases = Array.isArray(dbData) ? dbData : [];
@@ -105,6 +108,28 @@ export function Solutions() {
             return 0;
         });
     }, [filteredUsers, sortSuccess, sortAttempts]);
+
+    const activeRowsCount = showUserStats ? sortedUsers.length : sortedExercises.length;
+    const totalPages = Math.max(1, Math.ceil(activeRowsCount / pageSize));
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const pagedUsers = useMemo(
+        () => sortedUsers.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize),
+        [pageSize, safeCurrentPage, sortedUsers],
+    );
+    const pagedExercises = useMemo(
+        () => sortedExercises.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize),
+        [pageSize, safeCurrentPage, sortedExercises],
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, selectedDatabaseMetaId, selectedDifficulty, sortSuccess, sortAttempts, sortDifficulty, showUserStats, pageSize]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const totalExerciseAttempts = exerciseStats.reduce((sum, s) => sum + (Number(s?.totalAttempts) || 0), 0);
     const totalUserAttempts = userStats.reduce((sum, s) => sum + (Number(s?.totalAttempts) || 0), 0);
@@ -538,6 +563,30 @@ export function Solutions() {
                 </p>
             )}
 
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-secondary/20 bg-secondary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-text/60">
+                    Показаны записи {activeRowsCount === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1}-{Math.min(safeCurrentPage * pageSize, activeRowsCount)} из {activeRowsCount}
+                </p>
+
+                <div className="flex items-center gap-3">
+                    <label className="text-sm text-text/60" htmlFor="solutions-page-size">
+                        На странице
+                    </label>
+                    <select
+                        id="solutions-page-size"
+                        value={pageSize}
+                        onChange={(event) => setPageSize(Number(event.target.value) as (typeof PAGE_SIZE_OPTIONS)[number])}
+                        className="rounded-xl border border-secondary/30 bg-background px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
+                    >
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                            <option key={option} value={option}>
+                                {option}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -574,10 +623,10 @@ export function Solutions() {
 
                         <tbody className="divide-y divide-secondary/10">
                         {showUserStats ? (
-                            sortedUsers.map((stat, index) => (
+                            pagedUsers.map((stat, index) => (
                                 <tr key={stat.userId || index} className="hover:bg-secondary/5 transition-colors">
                                     <td className="px-4 py-4">
-                                        <span className="text-text/40 font-mono text-sm">{index + 1}</span>
+                                        <span className="text-text/40 font-mono text-sm">{(safeCurrentPage - 1) * pageSize + index + 1}</span>
                                     </td>
 
                                     <td className="px-4 py-4">
@@ -613,14 +662,14 @@ export function Solutions() {
                                 </tr>
                             ))
                         ) : (
-                            sortedExercises.map((stat, index) => {
+                            pagedExercises.map((stat, index) => {
                                 const dbName = databases.find(db => db.id === stat.databaseMetaId)?.logicalName || "Неизвестно";
                                 const diffConfig = getDifficultyConfig(stat.exerciseDifficulty);
 
                                 return (
                                     <tr key={stat.exerciseId || index} className="hover:bg-secondary/5 transition-colors">
                                         <td className="px-4 py-4">
-                                            <span className="text-text/40 font-mono text-sm">{index + 1}</span>
+                                            <span className="text-text/40 font-mono text-sm">{(safeCurrentPage - 1) * pageSize + index + 1}</span>
                                         </td>
 
                                         <td className="px-4 py-4">
@@ -686,6 +735,33 @@ export function Solutions() {
                     </div>
                 )}
             </div>
+
+            {totalPages > 1 && (
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-text/55">
+                        Страница {safeCurrentPage} из {totalPages}
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                            disabled={safeCurrentPage === 1}
+                            className="rounded-xl border border-secondary/30 bg-background px-4 py-2 text-sm text-text transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Назад
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                            disabled={safeCurrentPage === totalPages}
+                            className="rounded-xl border border-secondary/30 bg-background px-4 py-2 text-sm text-text transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Вперед
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

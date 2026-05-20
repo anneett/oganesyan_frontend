@@ -11,6 +11,7 @@ import {
     useGetExercisesQuery,
     useTestQueryMutation,
 } from "./exercisesApi";
+import { QueryMismatchNotice } from "./QueryMismatchNotice";
 
 const difficultyConfig = [
     { label: "Легкая", className: "border-green-500/25 bg-green-500/10 text-green-300" },
@@ -333,7 +334,13 @@ export function Exercise() {
                                     <h2 className={`text-2xl font-semibold ${createSolution.data.isCorrect ? "text-green-200" : "text-red-200"}`}>
                                         {createSolution.data.isCorrect ? "Ответ верный" : "Ответ не совпал"}
                                     </h2>
-                                    <p className="mt-2 text-sm leading-6 text-text/70">{createSolution.data.result}</p>
+                                    {createSolution.data.isCorrect ? (
+                                        <p className="mt-2 text-sm leading-6 text-text/70">{createSolution.data.result}</p>
+                                    ) : (
+                                        <div className="mt-4">
+                                            <QueryMismatchNotice message={createSolution.data.result ?? "Результат отличается от ожидаемого."} />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {!createSolution.data.isCorrect && (

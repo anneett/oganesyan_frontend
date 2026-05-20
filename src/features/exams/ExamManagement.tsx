@@ -1,5 +1,5 @@
 import { skipToken } from "@reduxjs/toolkit/query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
@@ -128,6 +128,51 @@ export const ExamManagement = () => {
     ]);
 
     const hasExamAvailabilityError = examAvailabilityErrors.length > 0;
+
+    const examFormValidationErrors = useMemo(() => {
+        const errors: string[] = [];
+        if (!examForm.title.trim()) errors.push("Введите название контрольной работы.");
+        if (!examForm.databaseMetaId) errors.push("Выберите базу данных.");
+        if (availableDeploymentsForExam.length === 0) {
+            errors.push("Для выбранной базы данных нет доступных подключений.");
+        } else if (examForm.deploymentIds.length === 0) {
+            errors.push("Выберите хотя бы одно подключение для контрольной работы.");
+        }
+        if (examForm.easyCount + examForm.mediumCount + examForm.hardCount === 0) {
+            errors.push("Укажите хотя бы одно задание.");
+        }
+        return errors;
+    }, [
+        availableDeploymentsForExam.length,
+        examForm.databaseMetaId,
+        examForm.deploymentIds.length,
+        examForm.easyCount,
+        examForm.hardCount,
+        examForm.mediumCount,
+        examForm.title,
+    ]);
+
+    useEffect(() => {
+        const availableIds = new Set(availableDeploymentsForExam.map((item) => item.id));
+        setExamForm((prev) => {
+            const nextIds = prev.deploymentIds.filter((id) => availableIds.has(id));
+            if (nextIds.length === prev.deploymentIds.length) {
+                return prev;
+            }
+            return { ...prev, deploymentIds: nextIds };
+        });
+    }, [availableDeploymentsForExam]);
+
+    useEffect(() => {
+        if (availableDeploymentsForExam.length === 1) {
+            const onlyDeploymentId = availableDeploymentsForExam[0].id;
+            setExamForm((prev) =>
+                prev.deploymentIds.length === 0
+                    ? { ...prev, deploymentIds: [onlyDeploymentId] }
+                    : prev,
+            );
+        }
+    }, [availableDeploymentsForExam]);
 
     const toggleDeploymentSelection = (deploymentId: number) => {
         setExamForm((prev) => {
@@ -260,6 +305,12 @@ export const ExamManagement = () => {
                         {examNotice && (
                             <div className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${noticeClasses[examNotice.tone]}`}>
                                 {examNotice.text}
+                            </div>
+                        )}
+
+                        {examFormValidationErrors.length > 0 && (
+                            <div className="mb-5 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200">
+                                {examFormValidationErrors.join(" ")}
                             </div>
                         )}
 

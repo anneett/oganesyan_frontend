@@ -18,6 +18,7 @@ import {
 } from "./examsApi";
 import { useGetUserProfileQuery } from "../users/usersApi";
 import { useCreateSolutionMutation } from "../solutions/solutionsApi";
+import { QueryMismatchNotice } from "../exercises/QueryMismatchNotice";
 
 const getUtcTimestamp = (dateStr: string) => {
     if (!dateStr) return 0;
@@ -55,12 +56,14 @@ export const ExamMode = () => {
     const [previewErrors, setPreviewErrors] = useState<Record<number, string>>({});
     const [previewResults, setPreviewResults] = useState<Record<number, QueryResult>>({});
     const [previewLoadingExerciseId, setPreviewLoadingExerciseId] = useState<number | null>(null);
+    const [isAnswersHydrated, setIsAnswersHydrated] = useState(false);
 
     const finishInProgress = useRef(false);
     const answersRef = useRef<Record<number, string>>({});
     const attemptRef = useRef<ExamAttempt | null>(null);
     const selectedExamRef = useRef<Exam | null>(null);
     const examExercisesRef = useRef<Exercise[]>([]);
+    const hydratedStorageKeyRef = useRef<string | null>(null);
 
     const { data: activeExams = [], isLoading: isLoadingExams } = useGetActiveExamsQuery();
     const [startExam, { isLoading: isStarting }] = useStartExamMutation();
@@ -156,7 +159,13 @@ export const ExamMode = () => {
     }, [activeAttempt]);
 
     useEffect(() => {
-        if (!storageKey || !currentAttempt || currentAttempt.finishedAt) {
+        if (
+            !storageKey ||
+            !currentAttempt ||
+            currentAttempt.finishedAt ||
+            !isAnswersHydrated ||
+            hydratedStorageKeyRef.current !== storageKey
+        ) {
             return;
         }
 
@@ -165,26 +174,39 @@ export const ExamMode = () => {
         };
 
         localStorage.setItem(storageKey, JSON.stringify(state));
-    }, [answers, currentAttempt, storageKey]);
+    }, [answers, currentAttempt, isAnswersHydrated, storageKey]);
 
     useEffect(() => {
-        if (!storageKey) return;
+        if (!storageKey) {
+            hydratedStorageKeyRef.current = null;
+            setIsAnswersHydrated(false);
+            return;
+        }
+
+        hydratedStorageKeyRef.current = null;
+        setIsAnswersHydrated(false);
 
         const raw = localStorage.getItem(storageKey);
 
         if (!raw) {
             setAnswers({});
+            hydratedStorageKeyRef.current = storageKey;
+            setIsAnswersHydrated(true);
             return;
         }
 
         try {
             const parsed: SavedAnswersState = JSON.parse(raw);
             setAnswers(parsed.answers ?? {});
+            hydratedStorageKeyRef.current = storageKey;
+            setIsAnswersHydrated(true);
         } catch {
             if (storageKey) {
                 localStorage.removeItem(storageKey);
             }
             setAnswers({});
+            hydratedStorageKeyRef.current = storageKey;
+            setIsAnswersHydrated(true);
         }
     }, [storageKey]);
 
@@ -871,7 +893,14 @@ export const ExamMode = () => {
                                                         : "border-red-500/25 bg-red-500/10 text-red-300"
                                                 }`}
                                             >
-                                                {solution.result}
+                                                {solution.isCorrect ? (
+                                                    solution.result
+                                                ) : (
+                                                    <QueryMismatchNotice
+                                                        message={solution.result}
+                                                        className="border-red-500/15 bg-black/10 px-0 py-0"
+                                                    />
+                                                )}
                                             </div>
                                         )}
                                     </article>

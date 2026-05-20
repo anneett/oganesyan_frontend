@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../app/getApiErrorMessage";
@@ -37,6 +37,7 @@ export const Add_Exercise = () => {
     const [fileInputKey, setFileInputKey] = useState(0);
     const [batchDatabaseMetaId, setBatchDatabaseMetaId] = useState<number>(preselectedDatabaseMetaId);
     const [batchDefaultDifficulty, setBatchDefaultDifficulty] = useState<1 | 2 | 3>(2);
+    const [batchReferenceDbType, setBatchReferenceDbType] = useState("");
     const [uploadResult, setUploadResult] = useState<BatchUploadResult | null>(null);
 
     const [message, setMessage] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export const Add_Exercise = () => {
                 difficulty,
                 databaseMetaId: effectiveDatabaseMetaId,
                 correctAnswer,
+                referenceDbType: selectedReferenceDeployment?.dbMeta?.dbType,
             }).unwrap();
 
             setMessageTone("success");
@@ -135,6 +137,7 @@ export const Add_Exercise = () => {
             const payload = {
                 databaseMetaId: parsedData.databaseMetaId || effectiveBatchDatabaseMetaId,
                 defaultDifficulty: parsedData.defaultDifficulty ?? batchDefaultDifficulty,
+                referenceDbType: parsedData.referenceDbType || effectiveBatchReferenceDbType || undefined,
                 exercises: parsedData.exercises,
             };
 
@@ -167,6 +170,7 @@ export const Add_Exercise = () => {
         const template = {
             databaseMetaId: effectiveBatchDatabaseMetaId || 1,
             defaultDifficulty: 2,
+            referenceDbType: effectiveBatchReferenceDbType || "PostgreSQL",
             exercises: [
                 {
                     title: "Пример задания 1",
@@ -193,6 +197,31 @@ export const Add_Exercise = () => {
     const selectedDbMeta = databaseMetas.find((m) => m.id === effectiveDatabaseMetaId);
     const deployments = selectedDbMeta?.deployments ?? [];
     const effectiveTestDeploymentId = testDeploymentId || deployments[0]?.id || 0;
+    const selectedReferenceDeployment = deployments.find((deployment) => deployment.id === effectiveTestDeploymentId) ?? deployments[0];
+    const selectedBatchDbMeta = databaseMetas.find((m) => m.id === effectiveBatchDatabaseMetaId);
+    const batchReferenceDbTypes = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    (selectedBatchDbMeta?.deployments ?? [])
+                        .map((deployment) => deployment.dbMeta?.dbType?.trim())
+                        .filter((value): value is string => Boolean(value)),
+                ),
+            ),
+        [selectedBatchDbMeta],
+    );
+    const effectiveBatchReferenceDbType = batchReferenceDbType || batchReferenceDbTypes[0] || "";
+
+    useEffect(() => {
+        if (batchReferenceDbTypes.length === 0) {
+            setBatchReferenceDbType("");
+            return;
+        }
+
+        if (!batchReferenceDbTypes.includes(batchReferenceDbType)) {
+            setBatchReferenceDbType(batchReferenceDbTypes[0]);
+        }
+    }, [batchReferenceDbType, batchReferenceDbTypes]);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -377,6 +406,75 @@ export const Add_Exercise = () => {
                         </div>
                     )}
 
+                    {testResult && isTestPanelOpen && (
+                        <div className={`rounded-[2rem] border p-6 shadow-xl ${
+                            testResult.isCorrect
+                                ? "border-green-500/25 bg-green-500/10"
+                                : "border-red-500/25 bg-red-500/10"
+                        }`}>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h3 className={`text-xl font-semibold ${
+                                    testResult.isCorrect ? "text-green-200" : "text-red-200"
+                                }`}>
+                                    Результат выполнения
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTestPanelOpen(false)}
+                                    className="rounded-xl border border-white/10 bg-black/15 px-3 py-1 text-sm text-text transition hover:bg-black/20"
+                                >
+                                    Закрыть
+                                </button>
+                            </div>
+
+                            <p className="mb-4 text-sm text-text/70">{testResult.message}</p>
+
+                            {testResult.errorDetails && (
+                                <div className="mb-4 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                                    {testResult.errorDetails}
+                                </div>
+                            )}
+
+                            {testResult.isCorrect && testResult.userRows.length > 0 && (
+                                <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#0f1720]">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                        <tr className="border-b border-white/10">
+                                            {testResult.columnNames.map((col: string, idx: number) => (
+                                                <th key={idx} className="px-3 py-2 text-left font-medium text-text/70">
+                                                    {col}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {testResult.userRows.slice(0, 10).map((row: string[], rowIdx: number) => (
+                                            <tr key={rowIdx} className="border-b border-white/5">
+                                                {row.map((cell: string, cellIdx: number) => (
+                                                    <td key={cellIdx} className="px-3 py-2 text-text/80">
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                    {testResult.userRowCount > 10 && (
+                                        <div className="border-t border-white/10 px-3 py-2 text-center text-sm text-text/50">
+                                            ... и еще {testResult.userRowCount - 10} строк
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {testResult.isCorrect && testResult.userRows.length === 0 && (
+                                <div className="rounded-xl border border-white/10 bg-black/15 px-4 py-6 text-center text-sm text-text/55">
+                                    Запрос выполнен успешно, но не вернул строк (пустой результат)
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <aside className="rounded-[2rem] border border-white/8 bg-white/4 p-6 shadow-xl shadow-black/15">
                         <h2 className="text-2xl font-semibold text-text">Подсказки</h2>
                         <div className="mt-5 space-y-4 text-sm leading-6 text-text/60">
@@ -396,75 +494,6 @@ export const Add_Exercise = () => {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        )}
-
-                        {testResult && isTestPanelOpen && (
-                            <div className={`mt-6 rounded-[2rem] border p-6 shadow-xl ${
-                                testResult.isCorrect
-                                    ? "border-green-500/25 bg-green-500/10"
-                                    : "border-red-500/25 bg-red-500/10"
-                            }`}>
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h3 className={`text-xl font-semibold ${
-                                        testResult.isCorrect ? "text-green-200" : "text-red-200"
-                                    }`}>
-                                        Результат выполнения
-                                    </h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsTestPanelOpen(false)}
-                                        className="rounded-xl border border-white/10 bg-black/15 px-3 py-1 text-sm text-text transition hover:bg-black/20"
-                                    >
-                                        Закрыть
-                                    </button>
-                                </div>
-
-                                <p className="mb-4 text-sm text-text/70">{testResult.message}</p>
-
-                                {testResult.errorDetails && (
-                                    <div className="mb-4 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                                        {testResult.errorDetails}
-                                    </div>
-                                )}
-
-                                {testResult.isCorrect && testResult.userRows.length > 0 && (
-                                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#0f1720]">
-                                        <table className="w-full text-sm">
-                                            <thead>
-                                            <tr className="border-b border-white/10">
-                                                {testResult.columnNames.map((col: string, idx: number) => (
-                                                    <th key={idx} className="px-3 py-2 text-left font-medium text-text/70">
-                                                        {col}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            {testResult.userRows.slice(0, 10).map((row: string[], rowIdx: number) => (
-                                                <tr key={rowIdx} className="border-b border-white/5">
-                                                    {row.map((cell: string, cellIdx: number) => (
-                                                        <td key={cellIdx} className="px-3 py-2 text-text/80">
-                                                            {cell}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                            </tbody>
-                                        </table>
-                                        {testResult.userRowCount > 10 && (
-                                            <div className="border-t border-white/10 px-3 py-2 text-center text-sm text-text/50">
-                                                ... и еще {testResult.userRowCount - 10} строк
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {testResult.isCorrect && testResult.userRows.length === 0 && (
-                                    <div className="rounded-xl border border-white/10 bg-black/15 px-4 py-6 text-center text-sm text-text/55">
-                                        Запрос выполнен успешно, но не вернул строк (пустой результат)
-                                    </div>
-                                )}
                             </div>
                         )}
                     </aside>
@@ -542,6 +571,34 @@ export const Add_Exercise = () => {
 
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-text/70">
+                                        СУБД эталонных SQL-ответов
+                                    </label>
+                                    {batchReferenceDbTypes.length > 0 ? (
+                                        <>
+                                            <select
+                                                value={effectiveBatchReferenceDbType}
+                                                onChange={(e) => setBatchReferenceDbType(e.target.value)}
+                                                className="w-full rounded-2xl border border-white/10 bg-[#0f1720] px-4 py-3 text-text outline-none transition focus:border-accent/50"
+                                            >
+                                                {batchReferenceDbTypes.map((dbType) => (
+                                                    <option key={dbType} value={dbType}>
+                                                        {dbType}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="mt-2 text-sm text-text/45">
+                                                Применится ко всем заданиям из файла, если внутри JSON у конкретного задания не задан свой referenceDbType.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className="rounded-2xl border border-dashed border-white/10 bg-black/15 px-4 py-4 text-sm text-text/55">
+                                            У выбранной логической БД пока нет доступных подключений, поэтому СУБД эталона здесь не выбирается.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-text/70">
                                         JSON-файл с заданиями
                                     </label>
                                     <input
@@ -584,10 +641,12 @@ export const Add_Exercise = () => {
                             <div className="mt-4 space-y-3 text-sm text-text/60">
                                 <p>• <code className="text-accent">databaseMetaId</code> — ID логической БД (опционально)</p>
                                 <p>• <code className="text-accent">defaultDifficulty</code> — 1/2/3 (опционально)</p>
+                                <p>• <code className="text-accent">referenceDbType</code> — СУБД эталонных SQL для всего файла (опционально)</p>
                                 <p>• <code className="text-accent">exercises</code> — массив заданий</p>
                                 <p>• <code className="text-accent">title</code> — название задания</p>
                                 <p>• <code className="text-accent">difficulty</code> — сложность (опционально)</p>
                                 <p>• <code className="text-accent">correctAnswer</code> — SQL-запрос</p>
+                                <p>• <code className="text-accent">referenceDbType</code> внутри задания — переопределяет общую СУБД для конкретного задания</p>
                             </div>
 
                             <div className="mt-4 rounded-xl bg-[#0f1720] p-4">
@@ -595,6 +654,7 @@ export const Add_Exercise = () => {
 {`{
   "databaseMetaId": 1,
   "defaultDifficulty": 2,
+  "referenceDbType": "PostgreSQL",
   "exercises": [
     {
       "title": "Золотые медали",
@@ -603,7 +663,8 @@ export const Add_Exercise = () => {
     },
     {
       "title": "Медали по годам",
-      "correctAnswer": "SELECT..."
+      "correctAnswer": "SELECT...",
+      "referenceDbType": "MySQL"
     }
   ]
 }`}

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGetDatabaseMetasQuery, useGetDbMetasQuery } from "../databaseMetas/databaseMetasApi";
 import { useGetUserStatsQuery, useGetUsersQuery, useGetUserProfileQuery } from "../users/usersApi";
 import { useGetExercisesQuery } from "./exercisesApi";
@@ -9,11 +9,14 @@ type FilterStatus = "all" | "solved" | "unsolved";
 type SortOption = "default" | "easy-first" | "hard-first";
 
 export function Exercises() {
+    const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
     const [search, setSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
     const [sortOption, setSortOption] = useState<SortOption>("default");
     const [filterDifficulty, setFilterDifficulty] = useState<number | null>(null);
     const [selectedDatabaseMetaId, setSelectedDatabaseMetaId] = useState<number | null>(null);
+    const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(20);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const { data: databases = [] } = useGetDatabaseMetasQuery();
     const { data: exercises, isLoading, error } = useGetExercisesQuery(
@@ -64,6 +67,24 @@ export function Exercises() {
 
         return result;
     }, [exercises, filterDifficulty, filterStatus, search, solvedExerciseIds, sortOption]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredExercises.length / pageSize));
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+
+    const pagedExercises = useMemo(
+        () => filteredExercises.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize),
+        [filteredExercises, pageSize, safeCurrentPage],
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, selectedDatabaseMetaId, filterDifficulty, filterStatus, sortOption, pageSize]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     const getDifficultyConfig = (difficulty: number) => {
         const configs = [
@@ -281,8 +302,38 @@ export function Exercises() {
                     ))}
                 </div>
 
+                {search && (
+                    <p className="text-text/50 text-sm mb-4">
+                        Найдено: {filteredExercises.length} из {totalExercises}
+                    </p>
+                )}
+
+                <div className="mb-4 flex flex-col gap-3 rounded-xl border border-secondary/20 bg-secondary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-text/60">
+                        Показаны записи {filteredExercises.length === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1}-{Math.min(safeCurrentPage * pageSize, filteredExercises.length)} из {filteredExercises.length}
+                    </p>
+
+                    <div className="flex items-center gap-3">
+                        <label className="text-sm text-text/60" htmlFor="exercises-page-size">
+                            На странице
+                        </label>
+                        <select
+                            id="exercises-page-size"
+                            value={pageSize}
+                            onChange={(event) => setPageSize(Number(event.target.value) as (typeof PAGE_SIZE_OPTIONS)[number])}
+                            className="rounded-xl border border-secondary/30 bg-background px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
+                        >
+                            {PAGE_SIZE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
                 <div className="grid gap-4">
-                    {filteredExercises.map((exercise) => {
+                    {pagedExercises.map((exercise) => {
                         const difficulty = getDifficultyConfig(exercise.difficulty);
                         const databaseName =
                             databases.find((database) => database.id === exercise.databaseMetaId)?.logicalName ?? "База данных";
@@ -337,6 +388,33 @@ export function Exercises() {
                         </div>
                     )}
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-text/55">
+                            Страница {safeCurrentPage} из {totalPages}
+                        </p>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                                disabled={safeCurrentPage === 1}
+                                className="rounded-xl border border-secondary/30 bg-background px-4 py-2 text-sm text-text transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Назад
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                                disabled={safeCurrentPage === totalPages}
+                                className="rounded-xl border border-secondary/30 bg-background px-4 py-2 text-sm text-text transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Вперед
+                            </button>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

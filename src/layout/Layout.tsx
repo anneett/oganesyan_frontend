@@ -251,7 +251,7 @@ export const Layout = () => {
                             </svg>
                         </button>
 
-                        <Link to="/exercises" className="flex items-center gap-3">
+                        <Link to={"/exercises"} className="flex items-center gap-3">
                             <img src={sqlLogo} alt="SQL Trainer" className="h-10 w-auto" />
                             <div>
                                 <p className="hidden sm:block text-xs text-text/50">

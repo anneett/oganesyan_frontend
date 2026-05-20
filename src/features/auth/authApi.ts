@@ -14,6 +14,10 @@ export interface AuthResponse {
     refreshToken: string;
 }
 
+export interface RefreshRequest {
+    refreshToken: string;
+}
+
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: baseQuery,
@@ -29,7 +33,14 @@ export const authApi = createApi({
                 };
             },
         }),
+        refresh: builder.mutation<AuthResponse, RefreshRequest>({
+            query: (body) => ({
+                url: "/Auth/refresh",
+                method: "POST",
+                body,
+            }),
+        }),
     }),
 });
 
-export const { useLoginMutation } = authApi;
+export const { useLoginMutation, useRefreshMutation } = authApi;

@@ -7,6 +7,7 @@ export interface Exercise {
     difficulty: 1 | 2 | 3;
     databaseMetaId: number;
     correctAnswer: string;
+    referenceDbType?: string | null;
 }
 
 export interface CreateExerciseRequest {
@@ -14,6 +15,7 @@ export interface CreateExerciseRequest {
     difficulty: 1 | 2 | 3;
     databaseMetaId: number;
     correctAnswer: string;
+    referenceDbType?: string;
 }
 
 export interface ExerciseStatsDto {
@@ -47,11 +49,13 @@ export interface BatchExerciseItem {
     title: string;
     difficulty?: 1 | 2 | 3;
     correctAnswer: string;
+    referenceDbType?: string;
 }
 
 export interface BatchExerciseUpload {
     databaseMetaId: number;
     defaultDifficulty?: 1 | 2 | 3;
+    referenceDbType?: string;
     exercises: BatchExerciseItem[];
 }
 

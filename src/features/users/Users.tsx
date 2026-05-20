@@ -1,10 +1,11 @@
 import { useGetUsersQuery, useArchiveUserMutation, useChangeUserMutation, useGetUserProfileQuery } from './usersApi';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 type SortRole = 'all' | 'admins-first' | 'users-first';
 
 export function Users() {
+    const PAGE_SIZE_OPTIONS = [20, 50, 100] as const;
     const { data: users, isLoading, error } = useGetUsersQuery();
     const { data: currentUser } = useGetUserProfileQuery();
     const [archiveUser, { isLoading: isArchiving }] = useArchiveUserMutation();
@@ -19,6 +20,9 @@ export function Users() {
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
     const [isProcessingBulk, setIsProcessingBulk] = useState(false);
+
+    const [pageSize, setPageSize] = useState<(typeof PAGE_SIZE_OPTIONS)[number]>(20);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const activeUsers = users?.filter(user => !user.inArchive) || [];
     const archivedUsers = users?.filter(user => user.inArchive) || [];
@@ -43,11 +47,29 @@ export function Users() {
             });
     }, [currentList, search, sortRole]);
 
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+
+    const pagedUsers = useMemo(
+        () => filtered.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize),
+        [filtered, pageSize, safeCurrentPage],
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, showArchive, sortRole, pageSize]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
     const adminCount = currentList.filter(u => u.isAdmin).length;
     const userCount = currentList.length - adminCount;
 
-    const selectableUsers = filtered.filter(u => u.id !== currentUser?.id);
-    const isAllSelected = selectableUsers.length > 0 && selectedUserIds.size === selectableUsers.length;
+    const selectableUsers = pagedUsers.filter(u => u.id !== currentUser?.id);
+    const isAllSelected = selectableUsers.length > 0 && selectableUsers.every(u => selectedUserIds.has(u.id));
 
     const handleChangeRole = async (userId: number) => {
         setActionUserId(userId);
@@ -88,9 +110,13 @@ export function Users() {
 
     const toggleSelectAll = () => {
         if (isAllSelected) {
-            setSelectedUserIds(new Set());
+            const newSet = new Set(selectedUserIds);
+            selectableUsers.forEach(u => newSet.delete(u.id));
+            setSelectedUserIds(newSet);
         } else {
-            setSelectedUserIds(new Set(selectableUsers.map(u => u.id)));
+            const newSet = new Set(selectedUserIds);
+            selectableUsers.forEach(u => newSet.add(u.id));
+            setSelectedUserIds(newSet);
         }
     };
 
@@ -254,7 +280,8 @@ export function Users() {
                                 className="w-5 h-5 rounded border-secondary/50 bg-background text-accent"
                             />
                             <span className="text-text/80 text-sm">
-                                Выделено: {selectedUserIds.size} {selectedUserIds.size > 0 ? "пользователей" : ""}
+                                Выделено на странице: {selectableUsers.filter(u => selectedUserIds.has(u.id)).length} из {selectableUsers.length}
+                                {selectedUserIds.size > 0 && ` (всего: ${selectedUserIds.size})`}
                             </span>
                         </div>
 
@@ -315,6 +342,35 @@ export function Users() {
                     </div>
                 </div>
 
+                {search && (
+                    <p className="text-text/50 text-sm mb-4">
+                        Найдено: {filtered.length} из {currentList.length}
+                    </p>
+                )}
+
+                <div className="mb-4 flex flex-col gap-3 rounded-xl border border-secondary/20 bg-secondary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-text/60">
+                        Показаны записи {filtered.length === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1}-{Math.min(safeCurrentPage * pageSize, filtered.length)} из {filtered.length}
+                    </p>
+
+                    <div className="flex items-center gap-3">
+                        <label className="text-sm text-text/60" htmlFor="users-page-size">
+                            На странице
+                        </label>
+                        <select
+                            id="users-page-size"
+                            value={pageSize}
+                            onChange={(event) => setPageSize(Number(event.target.value) as (typeof PAGE_SIZE_OPTIONS)[number])}
+                            className="rounded-xl border border-secondary/30 bg-background px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
+                        >
+                            {PAGE_SIZE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
                 <div className="bg-background border border-secondary/20 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
@@ -344,7 +400,7 @@ export function Users() {
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-secondary/10">
-                            {filtered?.map((user) => {
+                            {pagedUsers?.map((user) => {
                                 const isSelf = isCurrentUser(user.id);
                                 const isProcessing = actionUserId === user.id;
                                 const isSelected = selectedUserIds.has(user.id);
@@ -429,7 +485,42 @@ export function Users() {
                             </tbody>
                         </table>
                     </div>
+
+                    {filtered.length === 0 && (
+                        <div className="text-center py-12">
+                            <p className="text-text/50">
+                                {search ? "Ничего не найдено" : "Нет пользователей"}
+                            </p>
+                        </div>
+                    )}
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-text/55">
+                            Страница {safeCurrentPage} из {totalPages}
+                        </p>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                                disabled={safeCurrentPage === 1}
+                                className="rounded-xl border border-secondary/30 bg-background px-4 py-2 text-sm text-text transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Назад
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                                disabled={safeCurrentPage === totalPages}
+                                className="rounded-xl border border-secondary/30 bg-background px-4 py-2 text-sm text-text transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Вперед
+                            </button>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
